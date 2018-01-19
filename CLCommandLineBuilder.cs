@@ -1,4 +1,6 @@
 ﻿using Microsoft.VisualStudio.VCProjectEngine;
+using System;
+using System.Linq;
 
 namespace AsmExplorer
 {
@@ -19,6 +21,7 @@ namespace AsmExplorer
 
         public static string Compose(params string[] options)
         {
+            options = options.Where(option => (option != null)).ToArray();
             return string.Join(" ", options);
         }
 
@@ -383,7 +386,7 @@ namespace AsmExplorer
 
         #endregion // String properties
 
-        #region Conversion methods.
+        #region Conversion methods
 
         private static string CmdAdditionalIncludeDirectories(string directories)
         {
@@ -402,7 +405,7 @@ namespace AsmExplorer
 
         public static string CmdAssemblerListingLocation(string location)
         {
-            return "/Fa" + location;
+            return "/Fa" + SurroundWithQuotes(location);
         }
 
         public static string CmdAssemblerOutput(asmListingOption option)
@@ -583,7 +586,7 @@ namespace AsmExplorer
 
         public static string CmdFloatingPointExceptions(bool enabled)
         {
-            return CmdBoolean(enabled, "/fp:exceptions", "/fp:exceptions-");
+            return CmdBoolean(enabled, "/fp:except", "/fp:except-");
         }
 
         public static string CmdFloatingPointModel(floatingPointModel model)
@@ -705,7 +708,7 @@ namespace AsmExplorer
 
         public static string CmdPrecompiledHeaderFile(string pch)
         {
-            return "/Fp" + pch;
+            return "/Fp" + SurroundWithQuotes(pch);
         }
 
         public static string CmdPreprocessorDefinitions(string definitions)
@@ -715,7 +718,7 @@ namespace AsmExplorer
 
         public static string CmdProgramDatabaseFileName(string filename)
         {
-            return "/Fd" + filename;
+            return "/Fd" + SurroundWithQuotes(filename);
         }
 
         public static string CmdRuntimeLibrary(runtimeLibraryOption option)
@@ -805,9 +808,9 @@ namespace AsmExplorer
             switch (option)
             {
                 case pchOption.pchCreateUsingSpecific:
-                    return "/Yc" + filename;
+                    return "/Yc" + SurroundWithQuotes(filename);
                 case pchOption.pchUseUsingSpecific:
-                    return "/Yu" + filename;
+                    return "/Yu" + SurroundWithQuotes(filename);
             }
             return null;
         }
@@ -846,15 +849,28 @@ namespace AsmExplorer
 
             if (!string.IsNullOrEmpty(semicolonSeparated))
             {
-                string[] values = semicolonSeparated.Split(';');
-                foreach (string value in values)
+                string[] values = semicolonSeparated.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] composed = new string[values.Length];
+
+                for (int i = 0; i < values.Length; ++i)
                 {
-                    cmd += ' ';
-                    cmd += option + value;
+                    composed[i] = option + SurroundWithQuotes(values[i]);
                 }
+
+                cmd = string.Join(" ", composed);
             }
 
             return cmd;
+        }
+
+        private static string SurroundWithQuotes(string s)
+        {
+            return SurroundWith(s, "\"");
+        }
+
+        private static string SurroundWith(string s, string surround)
+        {
+            return surround + s + surround;
         }
 
         private static string CmdBoolean(bool enabled, string enabledOption, string disabledOption = null)

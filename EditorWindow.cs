@@ -1,6 +1,8 @@
 ﻿using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.VCProjectEngine;
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace AsmExplorer
@@ -30,6 +32,71 @@ namespace AsmExplorer
 
         #region Compilation
 
+        private string ComposeCommandLine(VCFile file, VCCLCompilerTool cl)
+        {
+            CLCommandLineBuilder commandLine = new CLCommandLineBuilder(cl);
+
+            string args = CLCommandLineBuilder.Compose(
+                // Asm generation related arguments.
+                CLCommandLineBuilder.CmdCompileOnly(true),
+                CLCommandLineBuilder.CmdAssemblerOutput(asmListingOption.asmListingAsmSrc),
+                CLCommandLineBuilder.CmdAssemblerListingLocation("$(IntDir)"),
+
+                // Arguments set up by user.
+                commandLine.AdditionalIncludeDirectories,
+                commandLine.AdditionalOptions,
+                commandLine.AdditionalUsingDirectories,
+                commandLine.BasicRuntimeChecks,
+                commandLine.BufferSecurityCheck,
+                commandLine.CallingConvention,
+                commandLine.CompileAs,
+                commandLine.DefaultCharIsUnsigned,
+                commandLine.Detect64BitPortabilityProblems,
+                commandLine.DisableLanguageExtensions,
+                commandLine.DisableSpecificWarnings,
+                commandLine.EnableEnhancedInstructionSet,
+                commandLine.EnableFiberSafeOptimizations,
+                commandLine.EnableFunctionLevelLinking,
+                commandLine.EnableIntrinsicFunctions,
+                commandLine.EnablePREfast,
+                commandLine.ErrorReporting,
+                commandLine.ExceptionHandling,
+                commandLine.ExpandAttributedSource,
+                commandLine.FavorSizeOrSpeed,
+                commandLine.FloatingPointExceptions,
+                commandLine.FloatingPointModel,
+                commandLine.ForceConformanceInForLoopScope,
+                commandLine.ForcedIncludeFiles,
+                commandLine.ForcedUsingFiles,
+                commandLine.FullIncludePath,
+                commandLine.IgnoreStandardIncludePath,
+                commandLine.InlineFunctionExpansion,
+                commandLine.OmitFramePointers,
+                commandLine.OmitDefaultLibName,
+                commandLine.OpenMP,
+                commandLine.Optimization,
+                commandLine.PrecompiledHeaderFile,
+                commandLine.PreprocessorDefinitions,
+                commandLine.RuntimeLibrary,
+                commandLine.RuntimeTypeInfo,
+                commandLine.SmallerTypeCheck,
+                commandLine.StringPooling,
+                commandLine.StructMemberAlignment,
+                commandLine.TreatWChar_tAsBuiltInType,
+                commandLine.UndefineAllPreprocessorDefinitions,
+                commandLine.UndefinePreprocessorDefinitions,
+                commandLine.UseFullPaths,
+                commandLine.UsePrecompiledHeader,
+                commandLine.WarnAsError,
+                commandLine.WarningLevel,
+                commandLine.WholeProgramOptimization);
+
+            args = file.project.ActiveConfiguration.Evaluate(args);
+            args = args.Replace("\\", "\\\\");
+
+            return args;
+        }
+
         public void CompileActive()
         {
             if (m_dte.ActiveDocument != null)
@@ -45,24 +112,101 @@ namespace AsmExplorer
         public void Compile(VCFile file)
         {
             VCProject project = file.project;
-            var engine = project.VCProjectEngine.Platforms;
+            VCConfiguration projectConfiguration = project.ActiveConfiguration;
+            VCFileConfiguration fileConfiguration = file.GetFileConfigurationForProjectConfiguration(projectConfiguration);
 
-            VCConfiguration debugConfig = project.Configurations.Item(1);
-            VCConfiguration releaseConfig = project.Configurations.Item(2);
-            var sheet = project.ActiveConfiguration.PropertySheets.Item(1);
-            // platform > executable directories.
+            string joinedDirectories = projectConfiguration.Evaluate(projectConfiguration.Platform.ExecutableDirectories);
+            string[] directories = joinedDirectories.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
-            var dir = debugConfig.Evaluate(debugConfig.Platform.ExecutableDirectories);
+            VCCLCompilerTool cl = fileConfiguration.Tool;
 
-            IVCCollection configurations = (IVCCollection)file.FileConfigurations;
-            VCFileConfiguration configuration = (VCFileConfiguration)configurations.Item(2);
+            foreach (string directory in directories)
+            {
+                string compilerPath = directory + "/" + cl.ToolPath;
+                if (File.Exists(compilerPath))
+                {
+                    compilerPath = "\"" + Path.GetFullPath(compilerPath) + "\"";
+                    string filePath = "\"" + file.FullPath + "\"";
 
-            VCCLCompilerTool cl = (VCCLCompilerTool)configuration.Tool;
-            Compiler.ComposeCommandLine(cl);
+                    string args = ComposeCommandLine(file, cl);
 
-            //cl.AssemblerOutput = asmListingOption.asmListingAsmSrc;
-            //configuration.Compile(false, false);
-            //cl.AssemblerOutput = asmListingOption.asmListingNone;
+                    Compile(compilerPath, args + " " + filePath);
+                    return;
+                }
+            }
+
+            // Failed to locate compiler.
+        }
+
+        private void Compile(string cl, string args)
+        {
+            Process process = new Process();
+            process.StartInfo.FileName = cl;
+            process.StartInfo.Arguments = args;
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.WorkingDirectory = Path.GetDirectoryName(m_dte.Solution.FullName);
+
+            EnvDTE.Window window = m_dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput);
+            EnvDTE.OutputWindow outputWindow = (EnvDTE.OutputWindow)window.Object;
+            EnvDTE.OutputWindowPane buildPane = outputWindow.OutputWindowPanes.Item("Build");
+            buildPane.Clear();
+            buildPane.Activate();
+
+            process.OutputDataReceived += (sender, eventArgs) => OutputReceived(buildPane, eventArgs);
+
+            process.Start();
+            process.BeginOutputReadLine();
+
+            System.Threading.Tasks.Task.Run(() => BuildTask(process));
+        }
+
+        private void BuildTask(Process process)
+        {
+            // Set compiling...
+
+            process.WaitForExit();
+
+            if (process.ExitCode == 0)
+            {
+                // Success.
+                m_control.Dispatcher.Invoke(() =>
+                    this.OnCompilationSuccess()
+                );
+            }
+            else
+            {
+                // Compilation failed.
+                m_control.Dispatcher.Invoke(() =>
+                    this.OnCompilationFailed()
+                );
+            }
+        }
+
+        private void OnCompilationSuccess()
+        {
+            VCFile file = m_dte.ActiveDocument.ProjectItem.Object as VCFile;
+            VCProject project = file.project;
+
+            string dir = project.ActiveConfiguration.Evaluate("$(IntDir)");
+            string filename = Path.ChangeExtension(file.Name, "asm");
+            string solutionDir  = Path.GetDirectoryName(m_dte.Solution.FullName);
+
+            string path = solutionDir + "/" + dir + "/" + filename;
+
+            string text = File.ReadAllText(path);
+
+            m_control.AsmText.Text = text;
+        }
+
+        private void OnCompilationFailed()
+        {
+        }
+
+        private void OutputReceived(EnvDTE.OutputWindowPane buildPane, DataReceivedEventArgs args)
+        {
+            buildPane.OutputString(args.Data + Environment.NewLine);
         }
 
         #endregion

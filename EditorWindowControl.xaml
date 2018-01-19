@@ -15,6 +15,8 @@
         </Grid.RowDefinitions>
         <Label x:Name="AsmStatus" Content="No source file." VerticalAlignment="Top"/>
         <Button x:Name="AsmCompile" HorizontalAlignment="Center" VerticalAlignment="Top" Content="Compile" Margin="0,5" Grid.Row="1" Padding="5" Click="AsmCompile_Click"/>
-        <TextBlock x:Name="AsmText"  Text="mov rax, rax" Margin="0" Grid.Row="2" Padding="5" FontFamily="Consolas"/>
+        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto">
+            <TextBlock x:Name="AsmText" Margin="0"  Padding="5" FontFamily="Consolas"><Run Text="mov rax, rax"/></TextBlock>
+        </ScrollViewer>
     </Grid>
 </UserControl>
