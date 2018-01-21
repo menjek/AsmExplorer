@@ -863,7 +863,7 @@ namespace AsmExplorer
             return cmd;
         }
 
-        private static string SurroundWithQuotes(string s)
+        public static string SurroundWithQuotes(string s)
         {
             return SurroundWith(s, "\"");
         }
