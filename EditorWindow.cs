@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace AsmExplorer
+namespace VSAsm
 {
     [Guid("3bf6b2bc-9c4d-41b2-8f3f-65a488653d07")]
     public class EditorWindow : ToolWindowPane

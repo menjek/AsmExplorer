@@ -2,7 +2,7 @@
 using System;
 using System.Linq;
 
-namespace AsmExplorer
+namespace VSAsm
 {
     class CLCommandLineBuilder
     {

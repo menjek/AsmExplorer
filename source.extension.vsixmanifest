@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="AsmExplorer.bf20beb5-e696-47e8-bf33-2eca575b6cc4" Version="1.0" Language="en-US" Publisher="Lukas Krizik" />
-    <DisplayName>AsmExplorer</DisplayName>
+    <Identity Id="VSAsm.bf20beb5-e696-47e8-bf33-2eca575b6cc4" Version="1.0" Language="en-US" Publisher="Lukas Krizik" />
+    <DisplayName>VSAsm</DisplayName>
     <Description>Empty VSIX Project.</Description>
   </Metadata>
   <Installation>

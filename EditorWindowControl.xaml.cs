@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace AsmExplorer
+namespace VSAsm
 {
     public partial class EditorWindowControl : UserControl
     {

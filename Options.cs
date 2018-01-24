@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Windows.Media;
 
-namespace AsmExplorer
+namespace VSAsm
 {
     class Options : DialogPage
     {

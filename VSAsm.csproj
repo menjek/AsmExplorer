@@ -84,8 +84,8 @@
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>
     <Content Include="index.html" />
-    <Content Include="Resources\AsmExplorerWindowCommand.png" />
-    <Content Include="Resources\AsmExplorerWindowPackage.ico" />
+    <Content Include="Resources\VSAsmWindowCommand.png" />
+    <Content Include="Resources\VSAsmWindowPackage.ico" />
     <Content Include="stylesheet.css" />
   </ItemGroup>
   <ItemGroup>

@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Collections.Generic;
 
-namespace AsmExplorer
+namespace VSAsm
 {
     class CLAsmParser
     {

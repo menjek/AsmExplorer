@@ -2,13 +2,13 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace AsmExplorer
+namespace VSAsm
 {
     [PackageRegistration(UseManagedResourcesOnly = true)]
     [InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideToolWindow(typeof(EditorWindow))]
-    [ProvideOptionPage(typeof(Options), "AsmExplorer", "General", 101, 106, true)]
+    [ProvideOptionPage(typeof(Options), "VSAsm", "General", 101, 106, true)]
     [Guid(Package.PackageGuidString)]
     public sealed class Package : Microsoft.VisualStudio.Shell.Package
     {

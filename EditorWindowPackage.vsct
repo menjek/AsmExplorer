@@ -22,7 +22,7 @@
 
   <!--The Commands section is where commands, menus, and menu groups are defined.
       This section uses a Guid to identify the package that provides the command defined inside it. -->
-  <Commands package="guidAsmExplorerWindowPackage">
+  <Commands package="guidVSAsmWindowPackage">
     <!-- Inside this section we have different sub-sections: one for the menus, another
     for the menu groups, one for the buttons (the actual commands), one for the combos
     and the last one for the bitmaps used. Each element is identified by a command id that
@@ -42,11 +42,11 @@
               <CommandFlag>DefaultInvisible</CommandFlag>
               <CommandFlag>DynamicVisibility</CommandFlag>
           If you do not want an image next to your command, remove the Icon node /> -->
-      <Button guid="guidAsmExplorerWindowPackageCmdSet" id="AsmExplorerWindowCommandId" priority="0x0100" type="Button">
+      <Button guid="guidVSAsmWindowPackageCmdSet" id="VSAsmWindowCommandId" priority="0x0100" type="Button">
         <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1"/>
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
-          <ButtonText>AsmExplorerWindow</ButtonText>
+          <ButtonText>VSAsmWindow</ButtonText>
         </Strings>
       </Button>
     </Buttons>
@@ -58,17 +58,17 @@
             bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
             inside a button definition. An important aspect of this declaration is that the element id
             must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-      <Bitmap guid="guidImages" href="Resources\AsmExplorerWindowCommand.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows, bmpPicStrikethrough"/>
+      <Bitmap guid="guidImages" href="Resources\VSAsmWindowCommand.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows, bmpPicStrikethrough"/>
     </Bitmaps>
   </Commands>
 
   <Symbols>
     <!-- This is the package guid. -->
-    <GuidSymbol name="guidAsmExplorerWindowPackage" value="{13e6928c-0bed-4914-8f5f-dfc6556a47dc}" />
+    <GuidSymbol name="guidVSAsmWindowPackage" value="{13e6928c-0bed-4914-8f5f-dfc6556a47dc}" />
 
     <!-- This is the guid used to group the menu commands together -->
-    <GuidSymbol name="guidAsmExplorerWindowPackageCmdSet" value="{4bfea2fa-289d-461e-982d-4fff305997c7}">
-      <IDSymbol name="AsmExplorerWindowCommandId" value="0x0100" />
+    <GuidSymbol name="guidVSAsmWindowPackageCmdSet" value="{4bfea2fa-289d-461e-982d-4fff305997c7}">
+      <IDSymbol name="VSAsmWindowCommandId" value="0x0100" />
     </GuidSymbol>
 
     <GuidSymbol name="guidImages" value="{25ce2ddb-48fa-4391-8855-11e3bf51c967}" >

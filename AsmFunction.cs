@@ -1,4 +1,4 @@
-﻿namespace AsmExplorer
+﻿namespace VSAsm
 {
     class AsmFunction
     {
