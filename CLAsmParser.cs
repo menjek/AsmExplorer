@@ -9,28 +9,25 @@ namespace AsmExplorer
     {
         #region Constants
 
-        private static readonly string FILE_SECTION_START = "; File";
-        private static readonly string FUNCTION_SECTION_START = "PROC";
-        private static readonly string FUNCTION_SECTION_END = "ENDP";
-        private static readonly string FUNCTION_SIGNATURE_END = ", COMDAT";
-        private static readonly string[] LINE_SEPARATORS = { "\n", "\r\n" };
+        const string FileStartID = "; File";
+        const string FunctionStartID = "PROC";
+        const string FunctionEndID = "ENDP";
+        const string FunctionCOMDAT = ", COMDAT";
+        static readonly string[] NewLines = { "\n", "\r\n" };
 
         #endregion // Constants
 
         #region Data
 
-        private class AsmFileBuilder
-        {
-            public string Path { get; set; }
-            public List<AsmFunction> Functions { get; set; }
+        string[] m_lines = null;
+        int m_currentLine = 0;
+
+        string CurrentLine {
+            get { return m_lines[m_currentLine]; }
         }
 
-        private string[] m_lines = null;
-        private int m_currentLine = 0;
-
-        private string CurrentLine
-        {
-            get { return m_lines[m_currentLine]; }
+        bool IsEOF {
+            get { return (m_currentLine + 1 == m_lines.Length); }
         }
 
         #endregion // Data
@@ -39,79 +36,102 @@ namespace AsmExplorer
 
         public AsmUnit ParseFile(string file)
         {
-            try
-            {
-                string[] lines = File.ReadAllLines(file);
-                return Parse(lines);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
+            string[] lines = File.ReadAllLines(file);
+            return Parse(lines);
         }
 
         public AsmUnit Parse(string text)
         {
-            return Parse(text.Split(LINE_SEPARATORS, StringSplitOptions.RemoveEmptyEntries));
+            string[] lines = text.Split(NewLines, StringSplitOptions.RemoveEmptyEntries);
+            return Parse(lines);
         }
 
         public AsmUnit Parse(string[] lines)
         {
             m_lines = lines;
             m_currentLine = 0;
-            ParseUnit();
-            return null;
+            return ParseUnit();
         }
 
         #endregion // Parse interface
 
         #region Parse implementation
 
-        private string NextLine()
+        string NextLine()
         {
             return m_lines[++m_currentLine];
         }
 
-        private void ParseUnit()
+        class AsmFileBuilder
+        {
+            public string Path { get; set; }
+            public List<AsmFunction> Functions { get; set; }
+        }
+
+        AsmUnit ParseUnit()
         {
             Dictionary<string, AsmFileBuilder> files = new Dictionary<string, AsmFileBuilder>();
 
             AsmFileBuilder fileBuilder = null;
-            while (m_currentLine + 1 < m_lines.Length)
-            {
-                string line = NextLine();
-                if (line.StartsWith(FILE_SECTION_START))
-                {
-                    string path = line.Substring(FILE_SECTION_START.Length + 1);
-                    if (!files.TryGetValue(path, out fileBuilder))
-                    {
-                        fileBuilder = new AsmFileBuilder() {
-                            Path = path,
-                            Functions = new List<AsmFunction>()
-                        };
-                        files.Add(path, fileBuilder);
-                    }
-                }
-                else if (line.IndexOf(FUNCTION_SECTION_START) != -1)
-                {
-                    if (fileBuilder != null)
-                    {
+            string line = CurrentLine;
+            while (true) {
+                if (line.StartsWith(FileStartID)) {
+                    fileBuilder = ParseFileStart(files, line);
+                } else if (line.Contains(FunctionStartID)) {
+                    if (fileBuilder != null) {
                         fileBuilder.Functions.Add(ParseFunction());
                     }
                 }
+
+                if (IsEOF) {
+                    break;
+                }
+
+                line = NextLine();
             }
 
-            return;
+            return ConvertFileMapToUnit(files);
         }
 
-        private AsmFunction ParseFunction()
+        AsmFileBuilder ParseFileStart(Dictionary<string, AsmFileBuilder> files, string line)
+        {
+            string path = line.Substring(FileStartID.Length + 1);
+            if (!files.TryGetValue(path, out AsmFileBuilder builder)) {
+                builder = new AsmFileBuilder() {
+                    Path = path,
+                    Functions = new List<AsmFunction>()
+                };
+                files.Add(path, builder);
+            }
+
+            return builder;
+        }
+
+        AsmUnit ConvertFileMapToUnit(Dictionary<string, AsmFileBuilder> files)
+        {
+            AsmUnit unit = new AsmUnit {
+                Files = new AsmFile[files.Count]
+            };
+
+            int index = 0;
+            foreach (KeyValuePair<string, AsmFileBuilder> file in files) {
+                unit.Files[index] = new AsmFile {
+                    Path = file.Value.Path,
+                    Functions = file.Value.Functions.ToArray()
+                };
+                ++index;
+            }
+
+            return unit;
+        }
+
+        AsmFunction ParseFunction()
         {
             AsmFunction function = ParseFunctionSignature(CurrentLine);
 
             NextLine();
             List<AsmBlock> blocks = new List<AsmBlock>();
-            while (!CurrentLine.Contains(FUNCTION_SECTION_END))
-            {
+            while (!CurrentLine.Contains(FunctionEndID)) {
                 blocks.Add(ParseBlock());
             }
 
@@ -119,113 +139,126 @@ namespace AsmExplorer
             return function;
         }
 
-        private AsmFunction ParseFunctionSignature(string signature)
+        AsmFunction ParseFunctionSignature(string signature)
         {
-            AsmFunction function = new AsmFunction();
+            // Format of the signature line:
+            // mangled_name PROC (; demangled_name(, COMDAT))
+            // Spaces may be any number of whitespace characters.
 
-            int keywordStart = signature.IndexOf(FUNCTION_SECTION_START);
-            string mangledName = signature.Substring(0, keywordStart);
-            function.MangledName = mangledName.TrimEnd();
+            int indexOfID = signature.IndexOf(FunctionStartID);
+            string mangledName = signature.Substring(0, indexOfID).TrimEnd();
 
-            int nameStart = signature.IndexOf(';', keywordStart) + 1;
-            if (nameStart != -1)
-            {
-                int nameEnd = signature.IndexOf(FUNCTION_SIGNATURE_END, nameStart);
-                if (nameEnd != -1)
-                {
-                    function.Name = signature.Substring(nameStart, nameEnd - nameStart);
+            string name = null;
+
+            int nameStart = signature.IndexOf(';', indexOfID) + 1;
+            if (nameStart != -1) {
+                // The function signature contains demangled name.
+                if (signature.EndsWith(FunctionCOMDAT)) {
+                    name = signature.Substring(nameStart, signature.Length - nameStart - FunctionCOMDAT.Length);
+                } else {
+                    name = signature.Substring(nameStart);
                 }
-                else
-                {
-                    function.Name = signature.Substring(nameStart);
-                }
-            }
-            else
-            {
-                function.Name = function.MangledName;
+            } else {
+                // No demangled name.
+                name = mangledName;
             }
 
-            return function;
+            return new AsmFunction {
+                MangledName = mangledName,
+                Name = name
+            };
         }
 
-        private AsmBlock ParseBlock()
+        AsmBlock ParseBlock()
         {
-            AsmBlock block = new AsmBlock();
+            // Usual block of assembly starts with lines describing the
+            // source file, followed by lines with assembly code:
+            //
+            // ; 12 {
+            // ; 13     int value = ComputeValue();
+            // mov rax, r11
+            // add r2, r8
+            //
 
-            if (CurrentLine[0] == ';')
-            {
-                SkipEmptyLines();
+            // However, some functions do not have any source code assigned
+            // such as generated special functions, e.g., destructors.
+            // Then only assembly code is present.
 
-                // Expect line starting with semicolon.
-                // Such lines refere to source code.
-                Debug.Assert(CurrentLine[0] == ';');
+            SkipEmptyLines();
 
-                block.SourceStartLine = ParseSourceLineNumber(CurrentLine);
-
-                string lastSourceLine = null;
-                while (CurrentLine[0] == ';')
-                {
-                    lastSourceLine = CurrentLine;
-                    NextLine();
-                }
-
-                block.SourceEndLine = ParseSourceLineNumber(lastSourceLine);
-
-                SkipEmptyLines();
-
-                // Expect at least one assembly line, line not starting
-                // with semicolon and not an end of a function.
-
-                Debug.Assert(CurrentLine[0] != ';');
-                Debug.Assert(!CurrentLine.Contains(FUNCTION_SECTION_END));
-
-                List<string> assembly = new List<string>();
-                while (!IsEndOfAssembly(CurrentLine))
-                {
-                    assembly.Add(CurrentLine);
-                    NextLine();
-                }
-
-                block.Assembly = assembly.ToArray();
-
+            if (CurrentLine[0] == ';') {
+                return ParseBlockWithSource();
+            } else {
+                return ParseBlockAssembly();
             }
-            else
-            {
-                block.SourceStartLine = -1;
-                block.SourceEndLine = -1;
+        }
 
-                List<string> assembly = new List<string>();
-                while (!CurrentLine.Contains(FUNCTION_SECTION_END))
-                {
-                    assembly.Add(CurrentLine);
-                    NextLine();
-                }
+        AsmBlock ParseBlockWithSource()
+        {
+            AsmBlock block = new AsmBlock {
+                SourceStartLine = ParseSourceLineNumber(CurrentLine)
+            };
 
-                block.Assembly = assembly.ToArray();
+            string lastSourceLine = null;
+            while (CurrentLine[0] == ';') {
+                lastSourceLine = CurrentLine;
+                NextLine();
             }
 
+            block.SourceEndLine = ParseSourceLineNumber(lastSourceLine);
+
+            SkipEmptyLines();
+
+            Debug.Assert(CurrentLine[0] != ';');
+            Debug.Assert(!CurrentLine.Contains(FunctionEndID));
+
+            List<string> assembly = new List<string>();
+            while (!IsEndOfBlock(CurrentLine)) {
+                assembly.Add(CurrentLine);
+                NextLine();
+            }
+
+            block.Assembly = assembly.ToArray();
             return block;
         }
 
-        private bool IsEndOfAssembly(string line)
+        AsmBlock ParseBlockAssembly()
+        {
+            AsmBlock block = new AsmBlock {
+                SourceStartLine = -1,
+                SourceEndLine = -1
+            };
+
+            List<string> assembly = new List<string>();
+            while (!CurrentLine.Contains(FunctionEndID)) {
+                assembly.Add(CurrentLine);
+                NextLine();
+            }
+
+            block.Assembly = assembly.ToArray();
+            return block;
+        }
+
+        bool IsEndOfBlock(string line)
         {
             return string.IsNullOrWhiteSpace(line) ||
                 (line[0] == ';') ||
-                (line.IndexOf(FUNCTION_SECTION_END) != -1);
+                (line.IndexOf(FunctionEndID) != -1);
         }
 
-        private int ParseSourceLineNumber(string line)
+        int ParseSourceLineNumber(string line)
         {
             const int NUMBER_START = 2;
             int numberEnd = line.IndexOf(' ', NUMBER_START);
-            string lineNumberText = line.Substring(NUMBER_START, numberEnd - NUMBER_START);
-            return int.Parse(lineNumberText);
+            Debug.Assert(numberEnd != -1);
+            return int.Parse(line.Substring(NUMBER_START, numberEnd - NUMBER_START));
         }
 
-        private void SkipEmptyLines()
+        void SkipEmptyLines()
         {
-            while (string.IsNullOrWhiteSpace(CurrentLine))
+            while (string.IsNullOrWhiteSpace(CurrentLine)) {
                 NextLine();
+            }
         }
 
         #endregion // Parse implementation

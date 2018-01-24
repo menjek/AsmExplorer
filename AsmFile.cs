@@ -8,7 +8,7 @@ namespace AsmExplorer
 {
     class AsmFile
     {
-        public string FullPath { get; set; }
+        public string Path { get; set; }
         public AsmFunction[] Functions { get; set; }
     }
 }

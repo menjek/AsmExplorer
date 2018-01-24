@@ -3,6 +3,6 @@
     class AsmUnit
     {
         public string Name { get; set; }
-        AsmFile[] Files { get; set; }
+        public AsmFile[] Files { get; set; }
     }
 }
