@@ -27,7 +27,7 @@ namespace VSAsm
         }
 
         bool IsEOF {
-            get { return (m_currentLine + 1 == m_lines.Length); }
+            get { return ((m_currentLine + 1) == m_lines.Length); }
         }
 
         #endregion // Data
@@ -64,7 +64,6 @@ namespace VSAsm
 
         class AsmFileBuilder
         {
-            public string Path { get; set; }
             public List<AsmFunction> Functions { get; set; }
         }
 
@@ -77,10 +76,8 @@ namespace VSAsm
             while (true) {
                 if (line.StartsWith(FileStartID)) {
                     fileBuilder = ParseFileStart(files, line);
-                } else if (line.Contains(FunctionStartID)) {
-                    if (fileBuilder != null) {
-                        fileBuilder.Functions.Add(ParseFunction());
-                    }
+                } else if (line.Contains(FunctionStartID) && (fileBuilder != null)) {
+                    fileBuilder.Functions.Add(ParseFunction());
                 }
 
                 if (IsEOF) {
@@ -90,7 +87,7 @@ namespace VSAsm
                 line = NextLine();
             }
 
-            return ConvertFileMapToUnit(files);
+            return ConvertFileBuildersToUnit(files);
         }
 
         AsmFileBuilder ParseFileStart(Dictionary<string, AsmFileBuilder> files, string line)
@@ -98,7 +95,6 @@ namespace VSAsm
             string path = line.Substring(FileStartID.Length + 1);
             if (!files.TryGetValue(path, out AsmFileBuilder builder)) {
                 builder = new AsmFileBuilder() {
-                    Path = path,
                     Functions = new List<AsmFunction>()
                 };
                 files.Add(path, builder);
@@ -107,19 +103,17 @@ namespace VSAsm
             return builder;
         }
 
-        AsmUnit ConvertFileMapToUnit(Dictionary<string, AsmFileBuilder> files)
+        AsmUnit ConvertFileBuildersToUnit(Dictionary<string, AsmFileBuilder> files)
         {
             AsmUnit unit = new AsmUnit {
-                Files = new AsmFile[files.Count]
+                Files = new Dictionary<string, AsmFile>()
             };
 
-            int index = 0;
             foreach (KeyValuePair<string, AsmFileBuilder> file in files) {
-                unit.Files[index] = new AsmFile {
-                    Path = file.Value.Path,
+                unit.Files[file.Key] = new AsmFile {
+                    Path = file.Key,
                     Functions = file.Value.Functions.ToArray()
                 };
-                ++index;
             }
 
             return unit;
@@ -243,7 +237,7 @@ namespace VSAsm
         {
             return string.IsNullOrWhiteSpace(line) ||
                 (line[0] == ';') ||
-                (line.IndexOf(FunctionEndID) != -1);
+                line.Contains(FunctionEndID);
         }
 
         int ParseSourceLineNumber(string line)

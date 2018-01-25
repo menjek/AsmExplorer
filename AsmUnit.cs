@@ -1,8 +1,10 @@
-﻿namespace VSAsm
+﻿using System.Collections.Generic;
+
+namespace VSAsm
 {
     class AsmUnit
     {
         public string Name { get; set; }
-        public AsmFile[] Files { get; set; }
+        public Dictionary<string, AsmFile> Files { get; set; }
     }
 }

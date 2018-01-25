@@ -113,11 +113,9 @@ namespace VSAsm
 
         public void CompileActive()
         {
-            if (m_dte.ActiveDocument != null)
-            {
+            if (m_dte.ActiveDocument != null) {
                 VCFile file = m_dte.ActiveDocument.ProjectItem.Object as VCFile;
-                if (file != null)
-                {
+                if (file != null) {
                     Compile(file);
                 }
             }
@@ -135,11 +133,9 @@ namespace VSAsm
                 StringSplitOptions.RemoveEmptyEntries);
 
             VCCLCompilerTool cl = fileConfiguration.Tool;
-            foreach (string dir in toolchainDirs)
-            {
+            foreach (string dir in toolchainDirs) {
                 string compilerPath = dir + "/" + cl.ToolPath;
-                if (File.Exists(compilerPath))
-                {
+                if (File.Exists(compilerPath)) {
                     EnsureAsmDirectoryExists(configuration);
 
                     string compilerQuotedPath = CLCommandLineBuilder.SurroundWithQuotes(compilerPath);
@@ -182,14 +178,11 @@ namespace VSAsm
         {
             process.WaitForExit();
 
-            if (process.ExitCode == 0)
-            {
+            if (process.ExitCode == 0) {
                 m_control.Dispatcher.Invoke(() =>
                     this.OnCompilationSuccess()
                 );
-            }
-            else
-            {
+            } else {
                 m_control.Dispatcher.Invoke(() =>
                     this.OnCompilationFailed()
                 );
@@ -207,8 +200,7 @@ namespace VSAsm
             string solutionDir = Path.GetDirectoryName(m_dte.Solution.FullName);
 
             string dir = Path.Combine(solutionDir, relativeDir);
-            if (!Directory.Exists(dir))
-            {
+            if (!Directory.Exists(dir)) {
                 Directory.CreateDirectory(dir);
             }
         }
@@ -244,7 +236,8 @@ namespace VSAsm
             string text = File.ReadAllText(path);
 
             CLAsmParser parser = new CLAsmParser();
-            parser.Parse(text);
+            AsmUnit asm = parser.Parse(text);
+            LoadAsm(asm);
 
             m_control.AsmText.Text = text;
         }
@@ -282,6 +275,10 @@ namespace VSAsm
         {
             m_control.AsmStatus.Content = "Out of date assembly.";
             m_control.ShowCompile();
+        }
+
+        private void LoadAsm(AsmUnit asm)
+        {
         }
 
         #endregion
