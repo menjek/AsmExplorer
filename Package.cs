@@ -9,11 +9,9 @@ namespace VSAsm
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideToolWindow(typeof(EditorWindow))]
     [ProvideOptionPage(typeof(Options), "VSAsm", "General", 101, 106, true)]
-    [Guid(Package.PackageGuidString)]
+    [Guid(PackageGuids.Package)]
     public sealed class Package : Microsoft.VisualStudio.Shell.Package
     {
-        public const string PackageGuidString = "13e6928c-0bed-4914-8f5f-dfc6556a47dc";
-
         protected override void Initialize()
         {
             base.Initialize();

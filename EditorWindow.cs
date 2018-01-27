@@ -21,6 +21,8 @@ namespace VSAsm
         const string OutputAsmDir = IntermediateDir + "/asm/";
         const string BuildPaneName = "Build";
 
+        static readonly Guid WindowCommandSetGuid = new Guid(PackageGuids.WindowCommandSet);
+
         #endregion // Constants
 
         #region Data
@@ -32,45 +34,54 @@ namespace VSAsm
 
         public EditorWindow() : base(null)
         {
-            this.Caption = "Assembly View";
+            Caption = "Assembly View";
 
             m_control = new EditorWindowControl(this);
-            this.Content = m_control;
+            Content = m_control;
 
-            this.ToolBar = new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), PackageGuids.ToolBar);
-        }
-
-        void Test(object sender, EventArgs e)
-        {
-            Debugger.Break();
+            ToolBar = new CommandID(WindowCommandSetGuid, PackageGuids.Toolbar);
         }
 
         protected override void Initialize()
         {
-            m_dte = (EnvDTE.DTE)this.GetService(typeof(EnvDTE.DTE));
+            m_dte = (EnvDTE.DTE)GetService(typeof(EnvDTE.DTE));
             //m_dte.Events.WindowEvents.WindowActivated += OnWindowActivated;
             //m_dte.Events.WindowEvents.WindowClosing += OnWindowClosing;
 
             m_control.AsmText.Document.PageWidth = 1024;
 
-            OleMenuCommandService commandService = this.GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
-            commandService.AddCommand(new OleMenuCommand(new EventHandler(this.Test), new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), 0x1101)));
-
-            var menuCommandID = new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), 0x0100);
-            var menuItem = new MenuCommand(this.ShowToolWindow, menuCommandID);
-            commandService.AddCommand(menuItem);
+            RegisterCommands();
         }
 
-        private void ShowToolWindow(object sender, EventArgs e)
+        void RegisterCommands()
         {
-            ToolWindowPane window = (this.Package as Package).FindToolWindow(typeof(EditorWindow), 0, true);
-            if ((null == window) || (null == window.Frame)) {
-                throw new NotSupportedException("Cannot create tool window");
-            }
+            OleMenuCommandService service = (OleMenuCommandService)GetService(typeof(IMenuCommandService));
 
-            IVsWindowFrame windowFrame = (IVsWindowFrame)Frame;
-            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
+            RegisterCommand(service, PackageGuids.CommandShowWindow, new EventHandler(this.OnShow));
+            RegisterCommand(service, PackageGuids.CommandCompileActive, new EventHandler(this.OnCompileActive));
         }
+
+        void RegisterCommand(OleMenuCommandService service, int commandID, EventHandler handler)
+        {
+            CommandID command = new CommandID(WindowCommandSetGuid, commandID);
+            OleMenuCommand menuItem = new OleMenuCommand(handler, command);
+            service.AddCommand(menuItem);
+        }
+
+        #region Command handlers
+
+        void OnShow(object sender, EventArgs e)
+        {
+            IVsWindowFrame windowFrame = (IVsWindowFrame)Frame;
+            windowFrame.Show();
+        }
+
+        void OnCompileActive(object sender, EventArgs e)
+        {
+            CompileActive();
+        }
+
+        #endregion // Command handlers
 
         #region Compilation
 
@@ -268,7 +279,7 @@ namespace VSAsm
         void LoadAsm(AsmUnit asm)
         {
             RichTextBox textBox = m_control.AsmText;
-            
+
             textBox.Document.Blocks.Clear();
             textBox.Document.Blocks.Add(new Paragraph(new Run("test")));
         }
