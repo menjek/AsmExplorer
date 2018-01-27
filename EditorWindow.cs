@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.VCProjectEngine;
 using System;
 using System.ComponentModel.Design;
@@ -36,7 +37,7 @@ namespace VSAsm
             m_control = new EditorWindowControl(this);
             this.Content = m_control;
 
-            this.ToolBar = new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), PackageGuids.VSAsmToolBar);
+            this.ToolBar = new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), PackageGuids.ToolBar);
         }
 
         void Test(object sender, EventArgs e)
@@ -53,7 +54,22 @@ namespace VSAsm
             m_control.AsmText.Document.PageWidth = 1024;
 
             OleMenuCommandService commandService = this.GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
-            commandService.AddCommand(new OleMenuCommand(new EventHandler(this.Test), new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), 0x0100)));
+            commandService.AddCommand(new OleMenuCommand(new EventHandler(this.Test), new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), 0x1101)));
+
+            var menuCommandID = new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), 0x0100);
+            var menuItem = new MenuCommand(this.ShowToolWindow, menuCommandID);
+            commandService.AddCommand(menuItem);
+        }
+
+        private void ShowToolWindow(object sender, EventArgs e)
+        {
+            ToolWindowPane window = (this.Package as Package).FindToolWindow(typeof(EditorWindow), 0, true);
+            if ((null == window) || (null == window.Frame)) {
+                throw new NotSupportedException("Cannot create tool window");
+            }
+
+            IVsWindowFrame windowFrame = (IVsWindowFrame)Frame;
+            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
         }
 
         #region Compilation

@@ -61,7 +61,6 @@
     <Compile Include="CLAsmParser.cs" />
     <Compile Include="CLCommandLineBuilder.cs" />
     <Compile Include="EditorWindow.cs" />
-    <Compile Include="EditorWindowCommand.cs" />
     <Compile Include="EditorWindowControl.xaml.cs">
       <DependentUpon>EditorWindowControl.xaml</DependentUpon>
     </Compile>

@@ -16,7 +16,6 @@ namespace VSAsm
 
         protected override void Initialize()
         {
-            EditorWindowCommand.Initialize(this);
             base.Initialize();
         }
     }

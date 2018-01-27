@@ -51,7 +51,7 @@
     <!--This section defines the elements the user can interact with, like a menu command or a button
         or combo box in a toolbar. -->
     <Buttons>
-      <Button guid="guidVSAsmWindowPackageCmdSet" id="VSAsmWindowCommandId" priority="0x0100" type="Button">
+      <Button guid="guidVSAsmWindowPackageCmdSet" id="VSAsmToolBarCompile" priority="0x0100" type="Button">
         <Parent guid="guidVSAsmWindowPackageCmdSet" id="VSAsmToolbarGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
@@ -95,6 +95,7 @@
       <IDSymbol name="VSAsmWindowCommandId" value="0x0100" />
       <IDSymbol name="VSAsmToolbar" value="0x1050" />
       <IDSymbol name="VSAsmToolbarGroup" value="0x1100" />
+      <IDSymbol name="VSAsmToolBarCompile" value="0x1101" />
     </GuidSymbol>
 
     <GuidSymbol name="guidImages" value="{25ce2ddb-48fa-4391-8855-11e3bf51c967}" >
