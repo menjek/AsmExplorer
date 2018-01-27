@@ -1,31 +1,33 @@
 ﻿using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.VCProjectEngine;
 using System;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Windows.Controls;
+using System.Windows.Documents;
 
 namespace VSAsm
 {
     [Guid("3bf6b2bc-9c4d-41b2-8f3f-65a488653d07")]
     public class EditorWindow : ToolWindowPane
     {
-
         #region Constants
 
-        private static readonly string[] CONFIGURATION_SEPARATORS = { ";" };
-        private static readonly string INTERMEDIATE_DIR = "$(IntDir)";
-        private static readonly string ASM_DIR = INTERMEDIATE_DIR + "/asm/";
-        private static readonly string BUILD_PANE = "Build";
+        static readonly string[] ConfigurationSeparators = { ";" };
+        const string IntermediateDir = "$(IntDir)";
+        const string OutputAsmDir = IntermediateDir + "/asm/";
+        const string BuildPaneName = "Build";
 
-        #endregion
+        #endregion // Constants
 
-        #region Data members
+        #region Data
 
-        private EnvDTE.DTE m_dte = null;
-        private EditorWindowControl m_control = null;
+        EnvDTE.DTE m_dte = null;
+        EditorWindowControl m_control = null;
 
-        #endregion
+        #endregion // Data
 
         public EditorWindow() : base(null)
         {
@@ -34,7 +36,12 @@ namespace VSAsm
             m_control = new EditorWindowControl(this);
             this.Content = m_control;
 
-            SetNoFile();
+            this.ToolBar = new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), PackageGuids.VSAsmToolBar);
+        }
+
+        void Test(object sender, EventArgs e)
+        {
+            Debugger.Break();
         }
 
         protected override void Initialize()
@@ -42,11 +49,16 @@ namespace VSAsm
             m_dte = (EnvDTE.DTE)this.GetService(typeof(EnvDTE.DTE));
             //m_dte.Events.WindowEvents.WindowActivated += OnWindowActivated;
             //m_dte.Events.WindowEvents.WindowClosing += OnWindowClosing;
+
+            m_control.AsmText.Document.PageWidth = 1024;
+
+            OleMenuCommandService commandService = this.GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
+            commandService.AddCommand(new OleMenuCommand(new EventHandler(this.Test), new CommandID(new Guid(PackageGuids.guidVSAsmWindowPackageCmdSet), 0x0100)));
         }
 
         #region Compilation
 
-        private static string ComposeCommandLine(VCFile file, VCCLCompilerTool cl)
+        static string ComposeCommandLine(VCFile file, VCCLCompilerTool cl)
         {
             CLCommandLineBuilder builder = new CLCommandLineBuilder(cl);
 
@@ -54,7 +66,7 @@ namespace VSAsm
                 // Asm generation related arguments.
                 CLCommandLineBuilder.CmdCompileOnly(true),
                 CLCommandLineBuilder.CmdAssemblerOutput(asmListingOption.asmListingAsmSrc),
-                CLCommandLineBuilder.CmdAssemblerListingLocation(ASM_DIR),
+                CLCommandLineBuilder.CmdAssemblerListingLocation(OutputAsmDir),
 
                 // Arguments set up by user.
                 builder.AdditionalIncludeDirectories,
@@ -114,8 +126,7 @@ namespace VSAsm
         public void CompileActive()
         {
             if (m_dte.ActiveDocument != null) {
-                VCFile file = m_dte.ActiveDocument.ProjectItem.Object as VCFile;
-                if (file != null) {
+                if (m_dte.ActiveDocument.ProjectItem.Object is VCFile file) {
                     Compile(file);
                 }
             }
@@ -129,12 +140,12 @@ namespace VSAsm
             string toolchainConfDirs = configuration.Platform.ExecutableDirectories;
             toolchainConfDirs = configuration.Evaluate(toolchainConfDirs);
 
-            string[] toolchainDirs = toolchainConfDirs.Split(CONFIGURATION_SEPARATORS,
+            string[] toolchainDirs = toolchainConfDirs.Split(ConfigurationSeparators,
                 StringSplitOptions.RemoveEmptyEntries);
 
             VCCLCompilerTool cl = fileConfiguration.Tool;
             foreach (string dir in toolchainDirs) {
-                string compilerPath = dir + "/" + cl.ToolPath;
+                string compilerPath = Path.Combine(dir, cl.ToolPath);
                 if (File.Exists(compilerPath)) {
                     EnsureAsmDirectoryExists(configuration);
 
@@ -149,7 +160,7 @@ namespace VSAsm
             OnMissingCompiler();
         }
 
-        private void Compile(string cl, string args)
+        void Compile(string cl, string args)
         {
             Process process = new Process();
             process.StartInfo.FileName = cl;
@@ -161,7 +172,7 @@ namespace VSAsm
 
             EnvDTE.Window window = m_dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput);
             EnvDTE.OutputWindow outputWindow = (EnvDTE.OutputWindow)window.Object;
-            EnvDTE.OutputWindowPane buildPane = outputWindow.OutputWindowPanes.Item(BUILD_PANE);
+            EnvDTE.OutputWindowPane buildPane = outputWindow.OutputWindowPanes.Item(BuildPaneName);
             buildPane.Clear();
             buildPane.Activate();
 
@@ -174,7 +185,7 @@ namespace VSAsm
             System.Threading.Tasks.Task.Run(() => BuildTask(process));
         }
 
-        private void BuildTask(Process process)
+        void BuildTask(Process process)
         {
             process.WaitForExit();
 
@@ -189,14 +200,14 @@ namespace VSAsm
             }
         }
 
-        private void BuildOutputReceived(EnvDTE.OutputWindowPane buildPane, DataReceivedEventArgs args)
+        void BuildOutputReceived(EnvDTE.OutputWindowPane buildPane, DataReceivedEventArgs args)
         {
             buildPane.OutputString(args.Data + Environment.NewLine);
         }
 
-        private void EnsureAsmDirectoryExists(VCConfiguration configuration)
+        void EnsureAsmDirectoryExists(VCConfiguration configuration)
         {
-            string relativeDir = configuration.Evaluate(ASM_DIR);
+            string relativeDir = configuration.Evaluate(OutputAsmDir);
             string solutionDir = Path.GetDirectoryName(m_dte.Solution.FullName);
 
             string dir = Path.Combine(solutionDir, relativeDir);
@@ -205,87 +216,52 @@ namespace VSAsm
             }
         }
 
-        #endregion
+        #endregion // Compilation
 
         #region States
 
-        private void OnMissingCompiler()
+        void OnMissingCompiler()
         {
-            m_control.AsmStatus.Content = "Failed to locate toolchain compiler.";
         }
 
-        private void OnCompilationStart()
+        void OnCompilationStart()
         {
-            m_control.AsmStatus.Content = "Compiling...";
-            m_control.AsmCompile.IsEnabled = false;
         }
 
-        private void OnCompilationSuccess()
+        void OnCompilationSuccess()
         {
-            m_control.AsmCompile.IsEnabled = true;
-
             VCFile file = m_dte.ActiveDocument.ProjectItem.Object as VCFile;
             VCProject project = file.project;
 
-            string dir = project.ActiveConfiguration.Evaluate(ASM_DIR);
+            string dir = project.ActiveConfiguration.Evaluate(OutputAsmDir);
             string filename = Path.ChangeExtension(file.Name, "asm");
             string solutionDir = Path.GetDirectoryName(m_dte.Solution.FullName);
 
-            string path = solutionDir + "/" + dir + "/" + filename;
-
+            string path = Path.Combine(solutionDir, dir, filename);
             string text = File.ReadAllText(path);
 
             CLAsmParser parser = new CLAsmParser();
             AsmUnit asm = parser.Parse(text);
             LoadAsm(asm);
-
-            m_control.AsmText.Text = text;
         }
 
-        private void OnCompilationFailed()
-        {
-            m_control.AsmCompile.IsEnabled = true;
-        }
-
-        private void SetNoFile()
-        {
-            m_control.AsmStatus.Content = "No document opened.";
-            m_control.ShowCompile();
-        }
-
-        private void SetNoSourceFile()
-        {
-            m_control.AsmStatus.Content = "Not a source file.";
-            m_control.HideCompile();
-        }
-
-        private void SetFailedCompilation()
-        {
-            m_control.AsmStatus.Content = "Compilation failed.";
-            m_control.ShowCompile();
-        }
-
-        private void SetAssembly(string assemblyFile)
-        {
-            m_control.AsmStatus.Content = "Compilation successful.";
-            m_control.HideCompile();
-        }
-
-        private void SetOutOfDate()
-        {
-            m_control.AsmStatus.Content = "Out of date assembly.";
-            m_control.ShowCompile();
-        }
-
-        private void LoadAsm(AsmUnit asm)
+        void OnCompilationFailed()
         {
         }
 
-        #endregion
+        void LoadAsm(AsmUnit asm)
+        {
+            RichTextBox textBox = m_control.AsmText;
+            
+            textBox.Document.Blocks.Clear();
+            textBox.Document.Blocks.Add(new Paragraph(new Run("test")));
+        }
+
+        #endregion // States
 
         #region Events
 
-        private void OnWindowActivated(EnvDTE.Window focus, EnvDTE.Window lostFocus)
+        void OnWindowActivated(EnvDTE.Window focus, EnvDTE.Window lostFocus)
         {
             //if (focus.Kind == WindowDocumentKind)
             //{
@@ -299,11 +275,11 @@ namespace VSAsm
             //}
         }
 
-        private void OnWindowClosing(EnvDTE.Window window)
+        void OnWindowClosing(EnvDTE.Window window)
         {
         }
 
-        private void SetupDocument(EnvDTE.Document document)
+        void SetupDocument(EnvDTE.Document document)
         {
             //VCFile file = document.ProjectItem.Object as VCFile;
 
@@ -318,6 +294,6 @@ namespace VSAsm
             //}
         }
 
-        #endregion
+        #endregion // Events
     }
 }

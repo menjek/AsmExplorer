@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-
+  
   <!--  This is the file that defines the actual layout and type of the commands.
         It is divided in different sections (e.g. command definition, command
         placement, ...), with each defining a specific set of properties.
@@ -23,6 +23,22 @@
   <!--The Commands section is where commands, menus, and menu groups are defined.
       This section uses a Guid to identify the package that provides the command defined inside it. -->
   <Commands package="guidVSAsmWindowPackage">
+    <Menus>
+      <Menu guid="guidVSAsmWindowPackageCmdSet" id="VSAsmToolbar" type="ToolWindowToolbar">
+        <CommandFlag>DefaultDocked</CommandFlag>
+        <Strings>
+          <ButtonText>Test Toolbar</ButtonText>
+          <CommandName>Test Toolbar</CommandName>
+        </Strings>
+      </Menu>
+    </Menus>
+
+    <Groups>
+      <Group guid="guidVSAsmWindowPackageCmdSet" id="VSAsmToolbarGroup" priority="0x0000">
+        <Parent guid="guidVSAsmWindowPackageCmdSet" id="VSAsmToolbar" />
+      </Group>
+    </Groups>
+
     <!-- Inside this section we have different sub-sections: one for the menus, another
     for the menu groups, one for the buttons (the actual commands), one for the combos
     and the last one for the bitmaps used. Each element is identified by a command id that
@@ -35,6 +51,14 @@
     <!--This section defines the elements the user can interact with, like a menu command or a button
         or combo box in a toolbar. -->
     <Buttons>
+      <Button guid="guidVSAsmWindowPackageCmdSet" id="VSAsmWindowCommandId" priority="0x0100" type="Button">
+        <Parent guid="guidVSAsmWindowPackageCmdSet" id="VSAsmToolbarGroup" />
+        <Icon guid="guidImages" id="bmpPic1" />
+        <Strings>
+          <ButtonText>Invoke TestCommand</ButtonText>
+        </Strings>
+      </Button>
+
       <!--To define a menu group you have to specify its ID, the parent menu and its display priority.
           The command is visible and enabled by default. If you need to change the visibility, status, etc, you can use
           the CommandFlag node.
@@ -69,6 +93,8 @@
     <!-- This is the guid used to group the menu commands together -->
     <GuidSymbol name="guidVSAsmWindowPackageCmdSet" value="{4bfea2fa-289d-461e-982d-4fff305997c7}">
       <IDSymbol name="VSAsmWindowCommandId" value="0x0100" />
+      <IDSymbol name="VSAsmToolbar" value="0x1050" />
+      <IDSymbol name="VSAsmToolbarGroup" value="0x1100" />
     </GuidSymbol>
 
     <GuidSymbol name="guidImages" value="{25ce2ddb-48fa-4391-8855-11e3bf51c967}" >

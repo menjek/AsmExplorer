@@ -23,8 +23,8 @@
     <ProjectGuid>{278E1A5A-15A3-48AB-B997-985EE43A371E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AsmExplorer</RootNamespace>
-    <AssemblyName>AsmExplorer</AssemblyName>
+    <RootNamespace>VSAsm</RootNamespace>
+    <AssemblyName>VSAsm</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>
     <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
@@ -69,6 +69,7 @@
     <Compile Include="Options.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="PackageGuids.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
