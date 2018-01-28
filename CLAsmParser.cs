@@ -12,7 +12,7 @@ namespace VSAsm
         const string FileStartID = "; File";
         const string FunctionStartID = "PROC";
         const string FunctionEndID = "ENDP";
-        const string FunctionCOMDAT = ", COMDAT";
+        const string FunctionCOMDAT = "COMDAT";
         static readonly string[] NewLines = { "\n", "\r\n" };
 
         #endregion // Constants
@@ -90,19 +90,6 @@ namespace VSAsm
             return ConvertFileBuildersToUnit(files);
         }
 
-        AsmFileBuilder ParseFileStart(Dictionary<string, AsmFileBuilder> files, string line)
-        {
-            string path = line.Substring(FileStartID.Length + 1);
-            if (!files.TryGetValue(path, out AsmFileBuilder builder)) {
-                builder = new AsmFileBuilder() {
-                    Functions = new List<AsmFunction>()
-                };
-                files.Add(path, builder);
-            }
-
-            return builder;
-        }
-
         AsmUnit ConvertFileBuildersToUnit(Dictionary<string, AsmFileBuilder> files)
         {
             AsmUnit unit = new AsmUnit {
@@ -117,6 +104,19 @@ namespace VSAsm
             }
 
             return unit;
+        }
+
+        AsmFileBuilder ParseFileStart(Dictionary<string, AsmFileBuilder> files, string line)
+        {
+            string path = line.Substring(FileStartID.Length + 1).ToLower();
+            if (!files.TryGetValue(path, out AsmFileBuilder builder)) {
+                builder = new AsmFileBuilder() {
+                    Functions = new List<AsmFunction>()
+                };
+                files.Add(path, builder);
+            }
+
+            return builder;
         }
 
         AsmFunction ParseFunction()
@@ -144,16 +144,26 @@ namespace VSAsm
 
             string name = null;
 
-            int nameStart = signature.IndexOf(';', indexOfID) + 1;
+            int nameStart = signature.IndexOf(';', indexOfID);
             if (nameStart != -1) {
-                // The function signature contains demangled name.
+                // The function signature may contain demangled name.
+                ++nameStart;
+
                 if (signature.EndsWith(FunctionCOMDAT)) {
                     name = signature.Substring(nameStart, signature.Length - nameStart - FunctionCOMDAT.Length);
+                    name = name.Trim();
+                    if (string.IsNullOrWhiteSpace(name)) {
+                        name = mangledName;
+                    } else if (name.EndsWith(",")) {
+                        name = name.Substring(0, name.Length - 1);
+                    }
                 } else {
                     name = signature.Substring(nameStart);
+                    name = name.Trim();
                 }
             } else {
-                // No demangled name.
+                // The function signature has only mangled name that is
+                // probably just C name.
                 name = mangledName;
             }
 

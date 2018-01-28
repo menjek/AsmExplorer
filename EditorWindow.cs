@@ -290,7 +290,7 @@ namespace VSAsm
             m_asm[file] = asm;
 
             if (m_dte.ActiveDocument.ProjectItem.Object as VCFile == file) {
-                LoadAsm(asm);
+                LoadAsm(file, asm);
             }
         }
 
@@ -299,12 +299,25 @@ namespace VSAsm
             OnCompilationEnd("Asm compilation failed.");
         }
 
-        void LoadAsm(AsmUnit asm)
+        void LoadAsm(VCFile file, AsmUnit asm)
         {
             RichTextBox textBox = m_control.AsmText;
-
             textBox.Document.Blocks.Clear();
-            textBox.AppendText("test0\ntest1\ntest2");
+
+            AsmFile asmFile = asm.Files[file.FullPath.ToLower()];
+            foreach (AsmFunction asmFunction in asmFile.Functions) {
+                string functionText = Environment.NewLine + asmFunction.Name;
+                functionText += Environment.NewLine;
+
+                foreach (AsmBlock block in asmFunction.Blocks) {
+                    foreach (string line in block.Assembly) {
+                        functionText += line;
+                        functionText += Environment.NewLine;
+                    }
+                }
+
+                textBox.AppendText(functionText);
+            }
         }
 
         #endregion // States
