@@ -8,6 +8,6 @@
              d:DesignHeight="300" d:DesignWidth="300"
              x:Name="VSAsmWindow">
     <ScrollViewer>
-        <RichTextBox x:Name="AsmText" Margin="0"  Padding="5" FontFamily="Consolas" ScrollViewer.CanContentScroll="True" BorderBrush="{x:Null}" BorderThickness="0" IsReadOnly="True"/>
+        <RichTextBox x:Name="AsmText" Margin="0"  Padding="5" ScrollViewer.CanContentScroll="True" BorderThickness="0" IsReadOnly="True"/>
     </ScrollViewer>
 </UserControl>

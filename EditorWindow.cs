@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.VCProjectEngine;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
@@ -29,6 +30,8 @@ namespace VSAsm
 
         EnvDTE.DTE m_dte = null;
         EditorWindowControl m_control = null;
+        Dictionary<int, OleMenuCommand> m_commands = new Dictionary<int, OleMenuCommand>();
+        Dictionary<VCFile, AsmUnit> m_asm = new Dictionary<VCFile, AsmUnit>();
 
         #endregion // Data
 
@@ -57,14 +60,15 @@ namespace VSAsm
         {
             OleMenuCommandService service = (OleMenuCommandService)GetService(typeof(IMenuCommandService));
 
-            RegisterCommand(service, PackageGuids.CommandShowWindow, new EventHandler(this.OnShow));
-            RegisterCommand(service, PackageGuids.CommandCompileActive, new EventHandler(this.OnCompileActive));
+            RegisterCommand(service, PackageGuids.CommandShowWindow, new EventHandler(OnShow));
+            RegisterCommand(service, PackageGuids.CommandCompileActive, new EventHandler(OnCompileActive));
         }
 
         void RegisterCommand(OleMenuCommandService service, int commandID, EventHandler handler)
         {
             CommandID command = new CommandID(WindowCommandSetGuid, commandID);
             OleMenuCommand menuItem = new OleMenuCommand(handler, command);
+            m_commands[commandID] = menuItem;
             service.AddCommand(menuItem);
         }
 
@@ -141,8 +145,7 @@ namespace VSAsm
                 builder.UseFullPaths,
                 builder.UsePrecompiledHeader,
                 builder.WarnAsError,
-                builder.WarningLevel,
-                builder.WholeProgramOptimization);
+                builder.WarningLevel);
 
             commandLine = file.project.ActiveConfiguration.Evaluate(commandLine);
             commandLine = commandLine.Replace("\\", "\\\\");
@@ -179,7 +182,7 @@ namespace VSAsm
                     string compilerQuotedPath = CLCommandLineBuilder.SurroundWithQuotes(compilerPath);
                     string filePath = CLCommandLineBuilder.SurroundWithQuotes(file.FullPath);
                     string args = ComposeCommandLine(file, cl);
-                    Compile(compilerQuotedPath, args + " " + filePath);
+                    Compile(compilerQuotedPath, args + " " + filePath, file);
                     return;
                 }
             }
@@ -187,7 +190,7 @@ namespace VSAsm
             OnMissingCompiler();
         }
 
-        void Compile(string cl, string args)
+        void Compile(string cl, string args, VCFile file)
         {
             Process process = new Process();
             process.StartInfo.FileName = cl;
@@ -209,20 +212,20 @@ namespace VSAsm
             process.BeginOutputReadLine();
 
             OnCompilationStart();
-            System.Threading.Tasks.Task.Run(() => BuildTask(process));
+            System.Threading.Tasks.Task.Run(() => BuildTask(process, file));
         }
 
-        void BuildTask(Process process)
+        void BuildTask(Process process, VCFile file)
         {
             process.WaitForExit();
 
             if (process.ExitCode == 0) {
                 m_control.Dispatcher.Invoke(() =>
-                    this.OnCompilationSuccess()
+                    OnCompilationSuccess(file)
                 );
             } else {
                 m_control.Dispatcher.Invoke(() =>
-                    this.OnCompilationFailed()
+                    OnCompilationFailed()
                 );
             }
         }
@@ -253,11 +256,26 @@ namespace VSAsm
 
         void OnCompilationStart()
         {
+            IVsStatusbar statusBar = (IVsStatusbar)GetService(typeof(SVsStatusbar));
+            statusBar.SetText("Asm compilation started.");
+            object icon = (short)Constants.SBAI_Build;
+            statusBar.Animation(1, ref icon);
+            m_commands[PackageGuids.CommandCompileActive].Enabled = false;
         }
 
-        void OnCompilationSuccess()
+        void OnCompilationEnd(string status)
         {
-            VCFile file = m_dte.ActiveDocument.ProjectItem.Object as VCFile;
+            IVsStatusbar statusBar = (IVsStatusbar)GetService(typeof(SVsStatusbar));
+            object icon = (short)Constants.SBAI_Build;
+            statusBar.Animation(0, ref icon);
+            statusBar.SetText(status);
+            m_commands[PackageGuids.CommandCompileActive].Enabled = true;
+        }
+
+        void OnCompilationSuccess(VCFile file)
+        {
+            OnCompilationEnd("Asm compilation successful.");
+
             VCProject project = file.project;
 
             string dir = project.ActiveConfiguration.Evaluate(OutputAsmDir);
@@ -269,11 +287,16 @@ namespace VSAsm
 
             CLAsmParser parser = new CLAsmParser();
             AsmUnit asm = parser.Parse(text);
-            LoadAsm(asm);
+            m_asm[file] = asm;
+
+            if (m_dte.ActiveDocument.ProjectItem.Object as VCFile == file) {
+                LoadAsm(asm);
+            }
         }
 
         void OnCompilationFailed()
         {
+            OnCompilationEnd("Asm compilation failed.");
         }
 
         void LoadAsm(AsmUnit asm)
@@ -281,7 +304,7 @@ namespace VSAsm
             RichTextBox textBox = m_control.AsmText;
 
             textBox.Document.Blocks.Clear();
-            textBox.Document.Blocks.Add(new Paragraph(new Run("test")));
+            textBox.AppendText("test0\ntest1\ntest2");
         }
 
         #endregion // States
