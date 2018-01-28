@@ -60,9 +60,9 @@
     <Compile Include="AsmUnit.cs" />
     <Compile Include="CLAsmParser.cs" />
     <Compile Include="CLCommandLineBuilder.cs" />
-    <Compile Include="EditorWindow.cs" />
-    <Compile Include="EditorWindowControl.xaml.cs">
-      <DependentUpon>EditorWindowControl.xaml</DependentUpon>
+    <Compile Include="ToolWindow.cs" />
+    <Compile Include="ToolWindow.xaml.cs">
+      <DependentUpon>ToolWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Package.cs" />
     <Compile Include="Options.cs">
@@ -80,7 +80,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <VSCTCompile Include="EditorWindowPackage.vsct">
+    <VSCTCompile Include="ToolWindow.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>
     <Content Include="index.html" />
@@ -89,7 +89,7 @@
     <Content Include="stylesheet.css" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="EditorWindowControl.xaml">
+    <Page Include="ToolWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -2,13 +2,13 @@
 
 namespace VSAsm
 {
-    public partial class EditorWindowControl : UserControl
+    public partial class ToolWindowControl : UserControl
     {
         private const int CompileRow = 1;
 
-        private EditorWindow m_window = null;
+        private ToolWindow m_window = null;
 
-        public EditorWindowControl(EditorWindow window)
+        public ToolWindowControl(ToolWindow window)
         {
             m_window = window;
             this.InitializeComponent();
