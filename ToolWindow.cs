@@ -1,18 +1,23 @@
 ﻿using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Utilities;
 using Microsoft.VisualStudio.VCProjectEngine;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Windows.Controls;
 
 namespace VSAsm
 {
     [Guid("3bf6b2bc-9c4d-41b2-8f3f-65a488653d07")]
-    public class ToolWindow : ToolWindowPane
+    [Export(typeof(IWpfTextViewCreationListener))]
+    [ContentType("text")]
+    [TextViewRole(PredefinedTextViewRoles.Document)]
+    public class ToolWindow : ToolWindowPane, IWpfTextViewCreationListener
     {
         #region Constants
 
@@ -29,6 +34,7 @@ namespace VSAsm
 
         EnvDTE.DTE m_dte = null;
         ToolWindowControl m_control = null;
+        ToolWindowView m_view = null;
         Dictionary<int, OleMenuCommand> m_commands = new Dictionary<int, OleMenuCommand>();
         Dictionary<VCFile, AsmUnit> m_asm = new Dictionary<VCFile, AsmUnit>();
 
@@ -40,6 +46,7 @@ namespace VSAsm
 
             m_control = new ToolWindowControl(this);
             Content = m_control;
+            m_view = new ToolWindowView(m_control.AsmText);
 
             ToolBar = new CommandID(WindowCommandSetGuid, PackageGuids.Toolbar);
         }
@@ -49,8 +56,6 @@ namespace VSAsm
             m_dte = (EnvDTE.DTE)GetService(typeof(EnvDTE.DTE));
             //m_dte.Events.WindowEvents.WindowActivated += OnWindowActivated;
             //m_dte.Events.WindowEvents.WindowClosing += OnWindowClosing;
-
-            m_control.AsmText.Document.PageWidth = 1024;
 
             RegisterCommands();
         }
@@ -287,40 +292,11 @@ namespace VSAsm
             CLAsmParser parser = new CLAsmParser();
             AsmUnit asm = parser.Parse(text);
             m_asm[file] = asm;
-
-            if (m_dte.ActiveDocument.ProjectItem.Object as VCFile == file) {
-                LoadAsm(file, asm);
-            }
         }
 
         void OnCompilationFailed()
         {
             OnCompilationEnd("Asm compilation failed.");
-        }
-
-        void LoadAsm(VCFile file, AsmUnit asm)
-        {
-            m_control.AsmText.Document.Blocks.Clear();
-
-            AsmFile asmFile = asm.Files[file.FullPath.ToLower()];
-            foreach (AsmFunction asmFunction in asmFile.Functions) {
-                AppendFunction(asmFunction);
-            }
-        }
-
-        void AppendFunction(AsmFunction asmFunction)
-        {
-            string functionText = Environment.NewLine + asmFunction.Name;
-            functionText += Environment.NewLine;
-
-            foreach (AsmBlock block in asmFunction.Blocks) {
-                foreach (string line in block.Assembly) {
-                    functionText += line;
-                    functionText += Environment.NewLine;
-                }
-            }
-
-            m_control.AsmText.AppendText(functionText);
         }
 
         #endregion // States
@@ -358,6 +334,17 @@ namespace VSAsm
             //{
             //    FileAsmWindow.SetNoSourceFile();
             //}
+        }
+
+        public void TextViewCreated(IWpfTextView textView)
+        {
+            textView.Caret.PositionChanged += PositionChanged;
+        }
+
+        void PositionChanged(object sender, CaretPositionChangedEventArgs args)
+        {
+            var test = args.NewPosition.Point.GetPoint(args.TextView.TextBuffer, args.NewPosition.Affinity).Value.GetContainingLine().LineNumber;
+            return;
         }
 
         #endregion // Events
