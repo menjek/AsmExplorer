@@ -7,6 +7,12 @@
              d:DesignHeight="300" d:DesignWidth="300"
              x:Name="VSAsmWindow">
     <ScrollViewer>
-        <RichTextBox x:Name="AsmText" Margin="0"  Padding="5" ScrollViewer.CanContentScroll="True" BorderThickness="0" IsReadOnly="True"/>
+        <RichTextBox x:Name="AsmText" Margin="0" Padding="5" ScrollViewer.CanContentScroll="True" BorderThickness="0" IsReadOnly="True">
+            <RichTextBox.Resources>
+                <Style TargetType="{x:Type Paragraph}">
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </RichTextBox.Resources>
+        </RichTextBox>
     </ScrollViewer>
 </UserControl>

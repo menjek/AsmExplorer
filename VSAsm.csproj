@@ -60,6 +60,7 @@
     <Compile Include="AsmUnit.cs" />
     <Compile Include="CLAsmParser.cs" />
     <Compile Include="CLCommandLineBuilder.cs" />
+    <Compile Include="TextViewCreationListener.cs" />
     <Compile Include="ToolWindow.cs" />
     <Compile Include="ToolWindowControl.xaml.cs">
       <DependentUpon>ToolWindowControl.xaml</DependentUpon>

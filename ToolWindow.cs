@@ -14,10 +14,7 @@ using System.Runtime.InteropServices;
 namespace VSAsm
 {
     [Guid("3bf6b2bc-9c4d-41b2-8f3f-65a488653d07")]
-    [Export(typeof(IWpfTextViewCreationListener))]
-    [ContentType("text")]
-    [TextViewRole(PredefinedTextViewRoles.Document)]
-    public class ToolWindow : ToolWindowPane, IWpfTextViewCreationListener
+    public class ToolWindow : ToolWindowPane
     {
         #region Constants
 
@@ -49,6 +46,8 @@ namespace VSAsm
             m_view = new ToolWindowView(m_control.AsmText);
 
             ToolBar = new CommandID(WindowCommandSetGuid, PackageGuids.Toolbar);
+
+            TextViewCreationListener.Events += (IWpfTextView textView) => textView.Caret.PositionChanged += PositionChanged;
         }
 
         protected override void Initialize()
@@ -334,11 +333,6 @@ namespace VSAsm
             //{
             //    FileAsmWindow.SetNoSourceFile();
             //}
-        }
-
-        public void TextViewCreated(IWpfTextView textView)
-        {
-            textView.Caret.PositionChanged += PositionChanged;
         }
 
         void PositionChanged(object sender, CaretPositionChangedEventArgs args)
