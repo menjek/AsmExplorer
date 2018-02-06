@@ -10,7 +10,7 @@
     <ScrollViewer>
         <RichTextBox x:Name="AsmText" Margin="0" Padding="5" ScrollViewer.CanContentScroll="True" BorderThickness="0" IsReadOnly="True">
             <RichTextBox.Resources>
-                <Style TargetType="{x:Type Paragraph}">
+                <Style TargetType="Paragraph">
                     <Setter Property="Margin" Value="0"/>
                 </Style>
                 <Style TargetType="RichTextBox">
