@@ -98,7 +98,6 @@ namespace VSAsm
 
         public void OnUserPreferencesChanged(VIEWPREFERENCES[] pViewPrefs, FRAMEPREFERENCES[] pFramePrefs, LANGPREFERENCES[] pLangPrefs, FONTCOLORPREFERENCES[] pColorPrefs)
         {
-            var hash = GetHashCode();
             UpdateFont();
         }
 
