@@ -1,25 +1,28 @@
-﻿using Microsoft.VisualStudio.OLE.Interop;
+﻿using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using System;
 using System.Windows.Controls;
-using System.Windows.Documents;
+using System.Windows.Media;
 
 namespace VSAsm
 {
-    class ToolWindowView : IVsTextManagerEvents
+    class ToolWindowView
     {
         #region Constants.
 
         const int TextBoxMinWidth = 1024;
+        static readonly Guid TextEditorFontGuid = new Guid(FontsAndColorsCategory.TextEditor);
 
         #endregion // Constants.
 
         #region Data.
 
-        RichTextBox m_textBox;
-        double m_zoomLevel = 100;
+        RichTextBox m_textBox = null;
+        double m_zoomLevel = 1.0;
+        double m_fontSize = 0.0;
 
         #endregion // Data.
 
@@ -30,13 +33,10 @@ namespace VSAsm
             m_textBox = textBox;
             m_textBox.Document.MinPageWidth = TextBoxMinWidth;
 
-            m_textBox.Document.Blocks.Clear();
-            m_textBox.Document.Blocks.Add(new Paragraph(new Run("#include <iostream>\n#include <array>\n#include <vector>\n#include <string>\nusing namespace std;")));
-
             RegisterForTextManagerEvents();
             UpdateFont();
 
-            TextViewCreationListener.Events += (IWpfTextView textView) => textView.ZoomLevelChanged += Zoom;
+            TextViewCreationListener.Events += (IWpfTextView textView) => textView.ZoomLevelChanged += UpdateZoom;
         }
 
         #endregion // Create.
@@ -51,60 +51,87 @@ namespace VSAsm
         {
         }
 
-        public void UpdateFont()
+        #endregion // Interface.
+
+        #region Events.
+
+        class TextManagerEventHandler : IVsTextManagerEvents
         {
-            var pLOGFONT = new LOGFONTW[1];
-            var pInfo = new FontInfo[1];
+            public ToolWindowView View { get; set; }
 
-            IVsFontAndColorStorage fonts = (IVsFontAndColorStorage)Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsFontAndColorStorage));
-            fonts.OpenCategory(new Guid(FontsAndColorsCategory.TextEditor), (uint)(__FCSTORAGEFLAGS.FCSF_LOADDEFAULTS | __FCSTORAGEFLAGS.FCSF_PROPAGATECHANGES));
+            public void OnRegisterMarkerType(int markerType) { }
+            public void OnRegisterView(IVsTextView view) { }
+            public void OnUnregisterView(IVsTextView view) { }
 
-            fonts.GetFont(pLOGFONT, pInfo);
-            double fontSize = PointsToPixels(pInfo[0].wPointSize) * (m_zoomLevel / 100.0);
-            m_textBox.FontFamily = new System.Windows.Media.FontFamily(pInfo[0].bstrFaceName);
-            m_textBox.FontSize = fontSize;
-            fonts.CloseCategory();
+            public void OnUserPreferencesChanged(VIEWPREFERENCES[] viewPrefs,
+                FRAMEPREFERENCES[] framePrefs,
+                LANGPREFERENCES[] langPrefs,
+                FONTCOLORPREFERENCES[] colorPrefs)
+            {
+                View.UpdateFont();
+            }
         }
 
-        #endregion // Interface.
+        void RegisterForTextManagerEvents()
+        {
+            IConnectionPointContainer container = (IConnectionPointContainer)Package.GetGlobalService(typeof(SVsTextManager));
+            if (container == null) {
+                return;
+            }
+
+            Guid eventsGuid = typeof(IVsTextManagerEvents).GUID;
+            container.FindConnectionPoint(ref eventsGuid, out IConnectionPoint textManagerEventsConnection);
+
+            TextManagerEventHandler handler = new TextManagerEventHandler() {
+                View = this
+            };
+
+            textManagerEventsConnection.Advise(handler, out uint textManagerCookie);
+        }
+
+        void UpdateFont()
+        {
+            FontInfo? info = GetTextEditorFontInfo();
+            if (info.HasValue) {
+                m_textBox.FontFamily = new FontFamily(info.Value.bstrFaceName);
+                m_fontSize = PointsToPixels(info.Value.wPointSize);
+                m_textBox.FontSize = m_fontSize * m_zoomLevel;
+            }
+        }
+
+        FontInfo? GetTextEditorFontInfo()
+        {
+            IVsFontAndColorStorage fontStorage = (IVsFontAndColorStorage)Package.GetGlobalService(typeof(SVsFontAndColorStorage));
+            if (fontStorage == null) {
+                return null;
+            }
+
+            if (fontStorage.OpenCategory(TextEditorFontGuid, (uint)(__FCSTORAGEFLAGS.FCSF_LOADDEFAULTS)) != VSConstants.S_OK) {
+                return null;
+            }
+
+            FontInfo[] info = new FontInfo[1];
+            int result = fontStorage.GetFont(null, info);
+            fontStorage.CloseCategory();
+
+            if (result != VSConstants.S_OK) {
+                return null;
+            }
+
+            return info[0];
+        }
 
         static double PointsToPixels(int points)
         {
             return (points * 96.0) / 72.0;
         }
 
-        public void RegisterForTextManagerEvents()
+        void UpdateZoom(object sender, ZoomLevelChangedEventArgs args)
         {
-            var textManager = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsTextManager)) as IVsTextManager2;
-            var container = textManager as IConnectionPointContainer;
-            IConnectionPoint textManagerEventsConnection;
-            var eventGuid = typeof(IVsTextManagerEvents).GUID;
-            container.FindConnectionPoint(ref eventGuid, out textManagerEventsConnection);
-            uint textManagerCookie;
-            textManagerEventsConnection.Advise(this, out textManagerCookie);
+            m_zoomLevel = args.NewZoomLevel / 100.0;
+            m_textBox.FontSize = m_fontSize * m_zoomLevel;
         }
 
-        public void OnRegisterMarkerType(int markerType)
-        {
-        }
-
-        public void OnRegisterView(IVsTextView view)
-        {
-        }
-
-        public void OnUnregisterView(IVsTextView view)
-        {
-        }
-
-        public void OnUserPreferencesChanged(VIEWPREFERENCES[] pViewPrefs, FRAMEPREFERENCES[] pFramePrefs, LANGPREFERENCES[] pLangPrefs, FONTCOLORPREFERENCES[] pColorPrefs)
-        {
-            UpdateFont();
-        }
-
-        public void Zoom(object sender, ZoomLevelChangedEventArgs args)
-        {
-            m_zoomLevel = args.NewZoomLevel;
-            UpdateFont();
-        }
+        #endregion // Events.
     }
 }
