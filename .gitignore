@@ -1,4 +1,4 @@
-.vs/*
-bin/*
-obj/*
-packages/*
+VSAsm/.vs/*
+VSAsm/bin/*
+VSAsm/obj/*
+VSAsm/packages/*
