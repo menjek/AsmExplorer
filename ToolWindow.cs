@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.VCProjectEngine;
 using System;
@@ -20,6 +21,7 @@ namespace VSAsm
         const string IntermediateDir = "$(IntDir)";
         const string OutputAsmDir = IntermediateDir + "/asm/";
         const string BuildPaneName = "Build";
+        const string WindowDocumentKind = "Document";
 
         static readonly Guid WindowCommandSetGuid = new Guid(PackageGuids.WindowCommandSet);
 
@@ -41,18 +43,38 @@ namespace VSAsm
 
             m_control = new ToolWindowControl(this);
             Content = m_control;
-            m_view = new ToolWindowView(m_control.AsmText);
+            m_view = new ToolWindowView(this, m_control.AsmText);
 
             ToolBar = new CommandID(WindowCommandSetGuid, PackageGuids.Toolbar);
 
             TextViewCreationListener.Events += (IWpfTextView textView) => textView.Caret.PositionChanged += PositionChanged;
         }
 
+        public VCFile ActiveFile {
+            get;
+            private set;
+        }
+
+        public AsmUnit ActiveAsm {
+            get {
+                if (m_asm.ContainsKey(ActiveFile)) {
+                    return m_asm[ActiveFile];
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        public int CurrentLine {
+            get;
+            private set;
+        }
+
         protected override void Initialize()
         {
             m_dte = (EnvDTE.DTE)GetService(typeof(EnvDTE.DTE));
-            //m_dte.Events.WindowEvents.WindowActivated += OnWindowActivated;
-            //m_dte.Events.WindowEvents.WindowClosing += OnWindowClosing;
+            m_dte.Events.WindowEvents.WindowActivated += OnWindowActivated;
+            m_dte.Events.WindowEvents.WindowClosing += OnWindowClosing;
 
             RegisterCommands();
         }
@@ -289,6 +311,10 @@ namespace VSAsm
             CLAsmParser parser = new CLAsmParser();
             AsmUnit asm = parser.Parse(text);
             m_asm[file] = asm;
+
+            if (ActiveFile == file) {
+                m_view.OnDocumentChanged();
+            }
         }
 
         void OnCompilationFailed()
@@ -302,41 +328,51 @@ namespace VSAsm
 
         void OnWindowActivated(EnvDTE.Window focus, EnvDTE.Window lostFocus)
         {
-            //if (focus.Kind == WindowDocumentKind)
-            //{
-            //    if (m_lastDocument == focus.Document)
-            //    {
-            //        return;
-            //    }
+            if (focus.Kind != WindowDocumentKind) {
+                return;
+            }
 
-            //    m_lastDocument = focus.Document;
-            //    SetupDocument(focus.Document);
-            //}
+            CurrentLine = 0;
+
+            VCFile file = focus.Document.ProjectItem.Object as VCFile;
+            bool isSource = (file != null) && (file.FileType == eFileType.eFileTypeCppCode);
+            if (isSource) {
+                ActiveFile = file;
+                // Take line number from the caret position.
+            } else {
+                ActiveFile = null;
+            }
+
+            m_view.OnDocumentChanged();
         }
 
         void OnWindowClosing(EnvDTE.Window window)
         {
-        }
+            if (window.Kind != WindowDocumentKind) {
+                return;
+            }
 
-        void SetupDocument(EnvDTE.Document document)
-        {
-            //VCFile file = document.ProjectItem.Object as VCFile;
+            VCFile file = window.Document.ProjectItem.Object as VCFile;
+            if (file == ActiveFile) {
+                ActiveFile = null;
+                CurrentLine = 0;
+            }
 
-            //bool isSource = (file != null) && (file.FileType == eFileType.eFileTypeCppCode);
-            //if (isSource)
-            //{
-            //    Compile(file);
-            //}
-            //else
-            //{
-            //    FileAsmWindow.SetNoSourceFile();
-            //}
+            m_view.OnDocumentChanged();
         }
 
         void PositionChanged(object sender, CaretPositionChangedEventArgs args)
         {
-            var test = args.NewPosition.Point.GetPoint(args.TextView.TextBuffer, args.NewPosition.Affinity).Value.GetContainingLine().LineNumber;
-            return;
+            if (ActiveFile != null) {
+                SnapshotPoint? point = args.NewPosition.Point.GetPoint(args.TextView.TextBuffer, args.NewPosition.Affinity);
+                if (point.HasValue) {
+                    int newLineNumber = point.Value.GetContainingLine().LineNumber + 1;
+                    if (CurrentLine != newLineNumber) {
+                        CurrentLine = newLineNumber;
+                        m_view.OnLineChanged();
+                    }
+                }
+            }
         }
 
         #endregion // Events

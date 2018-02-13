@@ -3,8 +3,11 @@ using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
+using Microsoft.VisualStudio.VCProjectEngine;
 using System;
+using System.Collections;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace VSAsm
@@ -20,6 +23,7 @@ namespace VSAsm
 
         #region Data.
 
+        ToolWindow m_window = null;
         RichTextBox m_textBox = null;
         double m_zoomLevel = 1.0;
         double m_fontSize = 0.0;
@@ -28,8 +32,9 @@ namespace VSAsm
 
         #region Create.
 
-        public ToolWindowView(RichTextBox textBox)
+        public ToolWindowView(ToolWindow window, RichTextBox textBox)
         {
+            m_window = window;
             m_textBox = textBox;
             m_textBox.Document.MinPageWidth = TextBoxMinWidth;
 
@@ -43,15 +48,98 @@ namespace VSAsm
 
         #region Interface.
 
-        public void Display(AsmFunction function)
+        public void OnDocumentChanged()
         {
+            if (m_window.ActiveFile == null) {
+                SetupNoDocument();
+            } else if (m_window.ActiveAsm == null) {
+                SetupMissingAsm();
+            } else {
+                SetupAsm();
+            }
         }
 
-        public void Display(AsmFile file)
+        public void OnLineChanged()
         {
+            if (m_window.ActiveAsm != null) {
+                SetupAsm();
+            }
         }
 
         #endregion // Interface.
+
+        #region States
+
+        void SetupNoDocument()
+        {
+            m_textBox.Document.Blocks.Clear();
+        }
+
+        void SetupMissingAsm()
+        {
+            m_textBox.Document.Blocks.Clear();
+            m_textBox.AppendText("No compiled assembly.");
+        }
+
+        class FunctionLineComparer : IComparer
+        {
+            public int Compare(object lhs, object rhs)
+            {
+                int lhsLine = 0;
+                int rhsLine = 0;
+
+                if (lhs is AsmFunction lhsFunction) {
+                    lhsLine = lhsFunction.Range.Min;
+                    rhsLine = (int)rhs;
+                } else {
+                    lhsLine = (int)lhs;
+                    rhsLine = ((AsmFunction)rhs).Range.Min;
+                }
+
+                if (lhsLine < rhsLine) {
+                    return -1;
+                } else if (rhsLine < lhsLine) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        }
+
+        void SetupAsm()
+        {
+            m_textBox.Document.Blocks.Clear();
+
+            AsmUnit asm = m_window.ActiveAsm;
+            AsmFile file = asm.Files[m_window.ActiveFile.FullPath.ToLower()];
+
+            AsmFunction selected = null;
+
+            int functionIndex = Array.BinarySearch(file.Functions, m_window.CurrentLine, new FunctionLineComparer());
+            if (functionIndex >= 0) {
+                selected = file.Functions[functionIndex];
+            } else {
+                functionIndex = ~functionIndex - 1;
+                if (functionIndex >= 0) {
+                    selected = file.Functions[functionIndex];
+                }
+            }
+
+            if (selected != null && selected.Range.Contains(m_window.CurrentLine)) {
+                SetupFunction(selected);
+            }
+        }
+
+        void SetupFunction(AsmFunction function)
+        {
+            m_textBox.AppendText(function.Name + Environment.NewLine);
+            foreach (AsmBlock block in function.Blocks) {
+                string paragraph = string.Join(Environment.NewLine, block.Assembly);
+                m_textBox.Document.Blocks.Add(new Paragraph(new Run(paragraph)));
+            }
+        }
+
+        #endregion
 
         #region Events.
 

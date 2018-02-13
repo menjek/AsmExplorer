@@ -97,9 +97,11 @@ namespace VSAsm
             };
 
             foreach (KeyValuePair<string, AsmFileBuilder> file in files) {
+                AsmFileBuilder builder = file.Value;
+                builder.Functions.Sort();
                 unit.Files[file.Key] = new AsmFile {
                     Path = file.Key,
-                    Functions = file.Value.Functions.ToArray()
+                    Functions = builder.Functions.ToArray()
                 };
             }
 
@@ -130,6 +132,10 @@ namespace VSAsm
             }
 
             function.Blocks = blocks.ToArray();
+            Array.Sort(function.Blocks);
+
+            function.Range = new LineRange(function.Blocks[0].Range.Min,
+                function.Blocks[function.Blocks.Length - 1].Range.Max);
             return function;
         }
 
@@ -199,9 +205,7 @@ namespace VSAsm
 
         AsmBlock ParseBlockWithSource()
         {
-            AsmBlock block = new AsmBlock {
-                SourceStartLine = ParseSourceLineNumber(CurrentLine)
-            };
+            int minLine = ParseSourceLineNumber(CurrentLine);
 
             string lastSourceLine = null;
             while (CurrentLine[0] == ';') {
@@ -209,7 +213,11 @@ namespace VSAsm
                 NextLine();
             }
 
-            block.SourceEndLine = ParseSourceLineNumber(lastSourceLine);
+            int maxLine = ParseSourceLineNumber(lastSourceLine);
+
+            AsmBlock block = new AsmBlock {
+                Range = new LineRange(minLine, maxLine)
+            };
 
             SkipEmptyLines();
 
@@ -229,8 +237,7 @@ namespace VSAsm
         AsmBlock ParseBlockAssembly()
         {
             AsmBlock block = new AsmBlock {
-                SourceStartLine = -1,
-                SourceEndLine = -1
+                Range = LineRange.InvalidRange
             };
 
             List<string> assembly = new List<string>();

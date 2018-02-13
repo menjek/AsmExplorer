@@ -1,9 +1,15 @@
-﻿namespace VSAsm
+﻿using System;
+
+namespace VSAsm
 {
-    class AsmBlock
+    public class AsmBlock : IComparable<AsmBlock>
     {
-        public int SourceStartLine { get; set; }
-        public int SourceEndLine { get; set; }
+        public LineRange Range { get; set; }
         public string[] Assembly { get; set; }
+
+        public int CompareTo(AsmBlock rhs)
+        {
+            return Range.CompareTo(rhs.Range);
+        }
     }
 }
