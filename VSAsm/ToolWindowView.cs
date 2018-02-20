@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
@@ -49,10 +50,12 @@ namespace VSAsm
 
         public void OnDocumentChanged()
         {
-            if (m_window.ActiveFile == null) {
+            if (m_window.ActiveTextView == null) {
                 SetupNoDocument();
+            } else if (m_window.ActiveFile == null) {
+                SetupNoSource();
             } else if (m_window.ActiveAsm == null) {
-                SetupMissingAsm();
+                SetupNoAsm();
             } else {
                 SetupAsm();
             }
@@ -65,6 +68,13 @@ namespace VSAsm
             }
         }
 
+        public void OnDirtyStateChanged(bool isDirty)
+        {
+            // Do not handle at the moment.
+            // This may be more complicated when assembly parsing
+            // from COFF and PDBs is implemented.
+        }
+
         #endregion // Interface.
 
         #region States
@@ -72,60 +82,28 @@ namespace VSAsm
         void SetupNoDocument()
         {
             m_textBox.Document.Blocks.Clear();
+            m_textBox.AppendText("No document.");
         }
 
-        void SetupMissingAsm()
+        void SetupNoSource()
         {
             m_textBox.Document.Blocks.Clear();
-            m_textBox.AppendText("No compiled assembly.");
+            m_textBox.AppendText("No source.");
         }
 
-        class FunctionLineComparer : IComparer
+        void SetupNoAsm()
         {
-            public int Compare(object lhs, object rhs)
-            {
-                int lhsLine = 0;
-                int rhsLine = 0;
-
-                if (lhs is AsmFunction lhsFunction) {
-                    lhsLine = lhsFunction.Range.Min;
-                    rhsLine = (int)rhs;
-                } else {
-                    lhsLine = (int)lhs;
-                    rhsLine = ((AsmFunction)rhs).Range.Min;
-                }
-
-                if (lhsLine < rhsLine) {
-                    return -1;
-                } else if (rhsLine < lhsLine) {
-                    return 1;
-                } else {
-                    return 0;
-                }
-            }
+            m_textBox.Document.Blocks.Clear();
+            m_textBox.AppendText("No asm.");
         }
 
         void SetupAsm()
         {
             m_textBox.Document.Blocks.Clear();
 
-            AsmUnit asm = m_window.ActiveAsm;
-            AsmFile file = asm.Files[m_window.ActiveFile.FullPath.ToLower()];
-
-            AsmFunction selected = null;
-
-            int functionIndex = Array.BinarySearch(file.Functions, m_window.CurrentLine, new FunctionLineComparer());
-            if (functionIndex >= 0) {
-                selected = file.Functions[functionIndex];
-            } else {
-                functionIndex = ~functionIndex - 1;
-                if (functionIndex >= 0) {
-                    selected = file.Functions[functionIndex];
-                }
-            }
-
-            if (selected != null && selected.Range.Contains(m_window.CurrentLine)) {
-                SetupFunction(selected);
+            AsmFunction function = SearchFunction(m_window.ActiveAsm.Functions, m_window.CurrentLine);
+            if (function != null) {
+                SetupFunction(function);
             }
         }
 
@@ -136,6 +114,41 @@ namespace VSAsm
                 string paragraph = string.Join(Environment.NewLine, block.Assembly);
                 m_textBox.Document.Blocks.Add(new Paragraph(new Run(paragraph)));
             }
+        }
+
+        static AsmFunction SearchFunction(List<AsmFunction> functions, int line)
+        {
+            int first = 0;
+            int count = functions.Count;
+
+            while (0 < count) {
+                int middle = count / 2;
+                AsmFunction middleFunction = functions[first + middle];
+                if (middleFunction.Range.Min < line) {
+                    first = middle + 1;
+                    count -= middle + 1;
+                } else {
+                    count = middle;
+                }
+            }
+
+            if (first == functions.Count) {
+                return null;
+            }
+
+            AsmFunction function = functions[first];
+            if (function.Range.Contains(line)) {
+                return function;
+            }
+
+            if (first != 0) {
+                function = functions[first - 1];
+                if (function.Range.Contains(line)) {
+                    return function;
+                }
+            }
+
+            return null;
         }
 
         #endregion

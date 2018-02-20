@@ -21,7 +21,6 @@ namespace VSAsm
         const string IntermediateDir = "$(IntDir)";
         const string OutputAsmDir = IntermediateDir + "/asm/";
         const string BuildPaneName = "Build";
-        const string WindowDocumentKind = "Document";
 
         static readonly Guid WindowCommandSetGuid = new Guid(PackageGuids.WindowCommandSet);
 
@@ -33,7 +32,8 @@ namespace VSAsm
         ToolWindowControl m_control = null;
         ToolWindowView m_view = null;
         Dictionary<int, OleMenuCommand> m_commands = new Dictionary<int, OleMenuCommand>();
-        Dictionary<VCFile, AsmUnit> m_asm = new Dictionary<VCFile, AsmUnit>();
+        Dictionary<string, AsmFile> m_asm = new Dictionary<string, AsmFile>();
+        EnvDTE.Window m_activeWindow;
 
         #endregion // Data
 
@@ -47,18 +47,45 @@ namespace VSAsm
 
             ToolBar = new CommandID(WindowCommandSetGuid, PackageGuids.Toolbar);
 
-            TextViewCreationListener.Events += (IWpfTextView textView) => textView.Caret.PositionChanged += PositionChanged;
+            TextViewCreationListener.Events += OnTextViewCreated;
         }
 
         public VCFile ActiveFile {
+            get {
+                if (m_activeWindow != null) {
+                    return m_activeWindow.Document.ProjectItem.Object as VCFile;
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        public IWpfTextView ActiveTextView {
             get;
             private set;
         }
 
-        public AsmUnit ActiveAsm {
+        public ITextDocument ActiveTextDocument {
             get {
-                if (m_asm.ContainsKey(ActiveFile)) {
-                    return m_asm[ActiveFile];
+                if (ActiveTextView != null) {
+                    ActiveTextView.TextBuffer.Properties.TryGetProperty<ITextDocument>(typeof(ITextDocument), out ITextDocument document);
+                    return document;
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        public AsmFile ActiveAsm {
+            get {
+                ITextDocument activeTextDocument = ActiveTextDocument;
+                if (activeTextDocument == null) {
+                    return null;
+                }
+
+                string filePath = activeTextDocument.FilePath.ToLower(); ;
+                if (m_asm.TryGetValue(filePath, out AsmFile asm)) {
+                    return asm;
                 } else {
                     return null;
                 }
@@ -309,12 +336,27 @@ namespace VSAsm
             string text = File.ReadAllText(path);
 
             CLAsmParser parser = new CLAsmParser();
-            AsmUnit asm = parser.Parse(text);
-            m_asm[file] = asm;
+            AsmUnit asmUnit = parser.Parse(text);
+
+            foreach (KeyValuePair<string, AsmFile> filePair in asmUnit.Files) {
+                string fileName = filePair.Key;
+                AsmFile asmFile = filePair.Value;
+
+                if (m_asm.ContainsKey(fileName)) {
+                    UpdateFile(m_asm[fileName], asmFile);
+                } else {
+                    m_asm[fileName] = asmFile;
+                }
+            }
 
             if (ActiveFile == file) {
                 m_view.OnDocumentChanged();
             }
+        }
+
+        void UpdateFile(AsmFile current, AsmFile newFile)
+        {
+            current.Functions = newFile.Functions;
         }
 
         void OnCompilationFailed()
@@ -326,21 +368,20 @@ namespace VSAsm
 
         #region Events
 
-        void OnWindowActivated(EnvDTE.Window focus, EnvDTE.Window lostFocus)
+        void OnWindowActivated(EnvDTE.Window gotFocus, EnvDTE.Window lostFocus)
         {
-            if (focus.Kind != WindowDocumentKind) {
+            if (gotFocus.Type != EnvDTE.vsWindowType.vsWindowTypeDocument) {
                 return;
             }
 
             CurrentLine = 0;
 
-            VCFile file = focus.Document.ProjectItem.Object as VCFile;
+            VCFile file = gotFocus.Document.ProjectItem.Object as VCFile;
             bool isSource = (file != null) && (file.FileType == eFileType.eFileTypeCppCode);
             if (isSource) {
-                ActiveFile = file;
-                // Take line number from the caret position.
+                m_activeWindow = gotFocus;
             } else {
-                ActiveFile = null;
+                m_activeWindow = null;
             }
 
             m_view.OnDocumentChanged();
@@ -348,33 +389,65 @@ namespace VSAsm
 
         void OnWindowClosing(EnvDTE.Window window)
         {
-            if (window.Kind != WindowDocumentKind) {
+            if (window.Type != EnvDTE.vsWindowType.vsWindowTypeDocument) {
                 return;
             }
 
-            VCFile file = window.Document.ProjectItem.Object as VCFile;
-            if (file == ActiveFile) {
-                ActiveFile = null;
+            if (window == m_activeWindow) {
+                m_activeWindow = null;
                 CurrentLine = 0;
+                m_view.OnDocumentChanged();
             }
+        }
 
+        void OnTextViewCreated(IWpfTextView textView)
+        {
+            textView.GotAggregateFocus += OnTextViewGotFocus;
+            textView.LostAggregateFocus += OnTextViewLostFocus;
+            textView.Caret.PositionChanged += OnTextViewCaretPositionChanged;
+
+            ITextDocument textDocument = textView.TextBuffer.Properties.GetProperty<ITextDocument>(typeof(ITextDocument));
+            textDocument.DirtyStateChanged += OnDirtyStateChanged;
+        }
+
+        void OnTextViewGotFocus(object sender, EventArgs args)
+        {
+            ActiveTextView = (IWpfTextView)sender;
+            UpdateLineNumber(ActiveTextView);
             m_view.OnDocumentChanged();
         }
 
-        void PositionChanged(object sender, CaretPositionChangedEventArgs args)
+        void OnTextViewLostFocus(object sender, EventArgs args)
         {
-            if (ActiveFile != null) {
-                SnapshotPoint? point = args.NewPosition.Point.GetPoint(args.TextView.TextBuffer, args.NewPosition.Affinity);
-                if (point.HasValue) {
-                    int newLineNumber = point.Value.GetContainingLine().LineNumber + 1;
-                    if (CurrentLine != newLineNumber) {
-                        CurrentLine = newLineNumber;
-                        m_view.OnLineChanged();
-                    }
-                }
-            }
+            ActiveTextView = null;
+            CurrentLine = 0;
+            m_view.OnDocumentChanged();
+        }
+
+        void OnTextViewCaretPositionChanged(object sender, CaretPositionChangedEventArgs args)
+        {
+            UpdateLineNumber(args.TextView);
+        }
+
+        void OnDirtyStateChanged(object sender, EventArgs args)
+        {
+            ITextDocument textDocument = (ITextDocument)sender;
+            m_view.OnDirtyStateChanged(textDocument.IsDirty);
         }
 
         #endregion // Events
+
+        void UpdateLineNumber(ITextView textView)
+        {
+            CaretPosition caretPosition = textView.Caret.Position;
+            SnapshotPoint? point = caretPosition.Point.GetPoint(textView.TextBuffer, caretPosition.Affinity);
+            if (point.HasValue) {
+                int lineNumber = point.Value.GetContainingLine().LineNumber + 1;
+                if (lineNumber != CurrentLine) {
+                    CurrentLine = lineNumber;
+                    m_view.OnLineChanged();
+                }
+            }
+        }
     }
 }

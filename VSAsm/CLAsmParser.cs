@@ -62,22 +62,17 @@ namespace VSAsm
             return m_lines[++m_currentLine];
         }
 
-        class AsmFileBuilder
-        {
-            public List<AsmFunction> Functions { get; set; }
-        }
-
         AsmUnit ParseUnit()
         {
-            Dictionary<string, AsmFileBuilder> files = new Dictionary<string, AsmFileBuilder>();
+            Dictionary<string, AsmFile> files = new Dictionary<string, AsmFile>();
 
-            AsmFileBuilder fileBuilder = null;
+            AsmFile file = null;
             string line = CurrentLine;
             while (true) {
                 if (line.StartsWith(FileStartID)) {
-                    fileBuilder = ParseFileStart(files, line);
-                } else if (line.Contains(FunctionStartID) && (fileBuilder != null)) {
-                    fileBuilder.Functions.Add(ParseFunction());
+                    file = ParseFileStart(files, line);
+                } else if (line.Contains(FunctionStartID) && (file != null)) {
+                    file.Functions.Add(ParseFunction());
                 }
 
                 if (IsEOF) {
@@ -87,32 +82,32 @@ namespace VSAsm
                 line = NextLine();
             }
 
-            return ConvertFileBuildersToUnit(files);
+            return BuildUnit(files);
         }
 
-        AsmUnit ConvertFileBuildersToUnit(Dictionary<string, AsmFileBuilder> files)
+        AsmUnit BuildUnit(Dictionary<string, AsmFile> files)
         {
             AsmUnit unit = new AsmUnit {
                 Files = new Dictionary<string, AsmFile>()
             };
 
-            foreach (KeyValuePair<string, AsmFileBuilder> file in files) {
-                AsmFileBuilder builder = file.Value;
+            foreach (KeyValuePair<string, AsmFile> file in files) {
+                AsmFile builder = file.Value;
                 builder.Functions.Sort();
                 unit.Files[file.Key] = new AsmFile {
                     Path = file.Key,
-                    Functions = builder.Functions.ToArray()
+                    Functions = builder.Functions
                 };
             }
 
             return unit;
         }
 
-        AsmFileBuilder ParseFileStart(Dictionary<string, AsmFileBuilder> files, string line)
+        AsmFile ParseFileStart(Dictionary<string, AsmFile> files, string line)
         {
             string path = line.Substring(FileStartID.Length + 1).ToLower();
-            if (!files.TryGetValue(path, out AsmFileBuilder builder)) {
-                builder = new AsmFileBuilder() {
+            if (!files.TryGetValue(path, out AsmFile builder)) {
+                builder = new AsmFile() {
                     Functions = new List<AsmFunction>()
                 };
                 files.Add(path, builder);

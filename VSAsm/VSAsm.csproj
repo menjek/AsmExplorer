@@ -57,6 +57,8 @@
     <Compile Include="AsmBlock.cs" />
     <Compile Include="AsmFile.cs" />
     <Compile Include="AsmFunction.cs" />
+    <Compile Include="AsmInstruction.cs" />
+    <Compile Include="AsmInstructionArg.cs" />
     <Compile Include="AsmUnit.cs" />
     <Compile Include="CLAsmParser.cs" />
     <Compile Include="CLCommandLineBuilder.cs" />

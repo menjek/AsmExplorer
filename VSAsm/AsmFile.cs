@@ -1,8 +1,10 @@
-﻿namespace VSAsm
+﻿using System.Collections.Generic;
+
+namespace VSAsm
 {
     public class AsmFile
     {
         public string Path { get; set; }
-        public AsmFunction[] Functions { get; set; }
+        public List<AsmFunction> Functions { get; set; }
     }
 }
