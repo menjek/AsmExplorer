@@ -5,7 +5,7 @@ namespace VSAsm
     public class AsmBlock : IComparable<AsmBlock>
     {
         public LineRange Range { get; set; }
-        public string[] Assembly { get; set; }
+        public AsmInstruction[] Instructions { get; set; }
 
         public int CompareTo(AsmBlock rhs)
         {

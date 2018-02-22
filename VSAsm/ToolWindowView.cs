@@ -4,7 +4,6 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -110,10 +109,43 @@ namespace VSAsm
         void SetupFunction(AsmFunction function)
         {
             m_textBox.AppendText(function.Name + Environment.NewLine);
+            string paragraph = string.Empty;
+
             foreach (AsmBlock block in function.Blocks) {
-                string paragraph = string.Join(Environment.NewLine, block.Assembly);
-                m_textBox.Document.Blocks.Add(new Paragraph(new Run(paragraph)));
+                foreach (AsmInstruction instruction in block.Instructions) {
+                    if (instruction.Name.EndsWith(":")) {
+                        // We have a label.
+                        paragraph += instruction.Name + Environment.NewLine;
+                        continue;
+                    }
+
+                    string line = "  ";
+                    line += instruction.Name;
+
+                    if (instruction.Args != null && instruction.Args.Length != 0) {
+                        line = line.PadRight(16);
+
+                        string[] args = new string[instruction.Args.Length];
+                        for (int i = 0; i < args.Length; ++i) {
+                            IAsmInstructionArg arg = instruction.Args[i];
+                            if (arg is AsmInstructionConstantArg) {
+                                args[i] = ((AsmInstructionConstantArg)arg).Value.ToString();
+                            } else if (arg is AsmInstructionRegisterArg) {
+                                args[i] = ((AsmInstructionRegisterArg)arg).Name.ToString();
+                            } else {
+                                args[i] = "indirect";
+                            }
+                        }
+
+                        line += string.Join(", ", args);
+                    }
+
+                    line += Environment.NewLine;
+                    paragraph += line;
+                }
             }
+
+            m_textBox.Document.Blocks.Add(new Paragraph(new Run(paragraph)));
         }
 
         static AsmFunction SearchFunction(List<AsmFunction> functions, int line)

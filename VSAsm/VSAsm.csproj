@@ -59,9 +59,9 @@
     <Compile Include="Asm\AsmFunction.cs" />
     <Compile Include="Asm\AsmInstruction.cs" />
     <Compile Include="Asm\AsmInstructionArg.cs" />
-    <Compile Include="Asm\AsmInstructionConstant.cs" />
-    <Compile Include="Asm\AsmInstructionIndirect.cs" />
-    <Compile Include="Asm\AsmInstructionRegister.cs" />
+    <Compile Include="Asm\AsmInstructionConstantArg.cs" />
+    <Compile Include="Asm\AsmInstructionIndirectAddressArg.cs" />
+    <Compile Include="Asm\AsmInstructionRegisterArg.cs" />
     <Compile Include="Asm\AsmUnit.cs" />
     <Compile Include="CLAsmParser.cs" />
     <Compile Include="CLCommandLineBuilder.cs" />

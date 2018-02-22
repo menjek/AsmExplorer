@@ -1,6 +1,6 @@
 ﻿namespace VSAsm
 {
-    class AsmInstruction
+    public class AsmInstruction
     {
         public ulong Address { get; set; }
         public byte[] OpCode { get; set; }

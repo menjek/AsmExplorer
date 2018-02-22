@@ -13,7 +13,10 @@ namespace VSAsm
         const string FunctionStartID = "PROC";
         const string FunctionEndID = "ENDP";
         const string FunctionCOMDAT = "COMDAT";
+        const char InstructionCommentStart = ';';
         static readonly string[] NewLines = { "\n", "\r\n" };
+        static readonly string[] InstructionSeparator = { "\t" };
+        static readonly string[] InstructionArgsSeparator = { ", " };
 
         #endregion // Constants
 
@@ -219,13 +222,13 @@ namespace VSAsm
             Debug.Assert(CurrentLine[0] != ';');
             Debug.Assert(!CurrentLine.Contains(FunctionEndID));
 
-            List<string> assembly = new List<string>();
+            List<AsmInstruction> assembly = new List<AsmInstruction>();
             while (!IsEndOfBlock(CurrentLine)) {
-                assembly.Add(CurrentLine);
+                assembly.Add(ParseInstruction(CurrentLine));
                 NextLine();
             }
 
-            block.Assembly = assembly.ToArray();
+            block.Instructions = assembly.ToArray();
             return block;
         }
 
@@ -235,14 +238,84 @@ namespace VSAsm
                 Range = LineRange.InvalidRange
             };
 
-            List<string> assembly = new List<string>();
+            List<AsmInstruction> assembly = new List<AsmInstruction>();
             while (!CurrentLine.Contains(FunctionEndID)) {
-                assembly.Add(CurrentLine);
+                assembly.Add(ParseInstruction(CurrentLine));
                 NextLine();
             }
 
-            block.Assembly = assembly.ToArray();
+            block.Instructions = assembly.ToArray();
             return block;
+        }
+
+        AsmInstruction ParseInstruction(string line)
+        {
+            string trimmed = line.Trim();
+            string[] tokens = trimmed.Split(InstructionSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            // First argument is the instruction name.
+            // Second argument can be parameters or comment.
+            // Third argument, if present, is comment.
+
+            Debug.Assert(tokens.Length > 0);
+            Debug.Assert(tokens.Length < 4);
+
+            AsmInstruction instruction = new AsmInstruction() {
+                Name = tokens[0]
+            };
+
+            if (tokens.Length > 1) {
+                if (tokens[1][0] == InstructionCommentStart) {
+                    // There are no arguments for the instruction.
+                    // The second argument is a comment.
+                    instruction.Comment = tokens[1].Substring(2);
+                } else {
+                    instruction.Args = ParseInstructionArgs(tokens[1]);
+                }
+
+                if (tokens.Length > 2) {
+                    // The last token can be only comment.
+                    Debug.Assert(tokens[2][0] == InstructionCommentStart);
+                    instruction.Comment = tokens[2].Substring(2);
+                }
+            }
+
+            return instruction;
+        }
+
+        IAsmInstructionArg[] ParseInstructionArgs(string raw)
+        {
+            string[] tokens = raw.Split(InstructionArgsSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            IAsmInstructionArg[] args = new IAsmInstructionArg[tokens.Length];
+
+            for (int i = 0; i < tokens.Length; ++i) {
+                string token = tokens[i];
+
+                if (token.Contains("[")) {
+                    // It must be indirect addressing argument.
+                    args[i] = ParseInstructionIndirectArg(token);
+                } else {
+                    // Either register or constant.
+
+                    if (long.TryParse(token, out long value)) {
+                        args[i] = new AsmInstructionConstantArg() {
+                            Value = value
+                        };
+                    } else {
+                        args[i] = new AsmInstructionRegisterArg() {
+                            Name = token
+                        };
+                    }
+                }
+            }
+
+            return args;
+        }
+
+        AsmInstructionIndirectAddressArg ParseInstructionIndirectArg(string raw)
+        {
+            return new AsmInstructionIndirectAddressArg();
         }
 
         bool IsEndOfBlock(string line)
