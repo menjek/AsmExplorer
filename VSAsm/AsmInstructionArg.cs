@@ -1,9 +1,6 @@
 ﻿namespace VSAsm
 {
-    class AsmInstructionArg
+    public interface IAsmInstructionArg
     {
-        // Constant
-        // Register
-        // Indirect
     }
 }
