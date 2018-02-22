@@ -54,15 +54,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="AsmBlock.cs" />
-    <Compile Include="AsmFile.cs" />
-    <Compile Include="AsmFunction.cs" />
-    <Compile Include="AsmInstruction.cs" />
-    <Compile Include="AsmInstructionArg.cs" />
-    <Compile Include="AsmInstructionConstant.cs" />
-    <Compile Include="AsmInstructionIndirect.cs" />
-    <Compile Include="AsmInstructionRegister.cs" />
-    <Compile Include="AsmUnit.cs" />
+    <Compile Include="Asm\AsmBlock.cs" />
+    <Compile Include="Asm\AsmFile.cs" />
+    <Compile Include="Asm\AsmFunction.cs" />
+    <Compile Include="Asm\AsmInstruction.cs" />
+    <Compile Include="Asm\AsmInstructionArg.cs" />
+    <Compile Include="Asm\AsmInstructionConstant.cs" />
+    <Compile Include="Asm\AsmInstructionIndirect.cs" />
+    <Compile Include="Asm\AsmInstructionRegister.cs" />
+    <Compile Include="Asm\AsmUnit.cs" />
     <Compile Include="CLAsmParser.cs" />
     <Compile Include="CLCommandLineBuilder.cs" />
     <Compile Include="LineRange.cs" />
