@@ -1,29 +1,14 @@
 ﻿using Microsoft.VisualStudio.Shell;
 using System.ComponentModel;
-using System.Windows.Media;
 
 namespace VSAsm
 {
     class Options : DialogPage
     {
-        [DisplayName("test")]
-        [Description("")]
-        [Category("Status")]
-        //[DefaultValue()]
-        public Color CompilationFailedBackground { get; set; }
-
-        public Brush CompilationFailedText { get; set; }
-
-        public Brush NoSourceBackground { get; set; }
-
-        public Brush NoSourceText { get; set; }
-
-        public Brush AssemblyBackground { get; set; }
-
-        public Brush AssemblyText { get; set; }
-
-        public Brush OutOfDateBackground { get; set; }
-
-        public Brush OutOfDateText { get; set; }
+        [DisplayName("Label padding")]
+        [Description("Number of spaces before all labels.")]
+        [Category("Assembler/Padding")]
+        [DefaultValue(0)]
+        public int Test { get; set; }
     }
 }

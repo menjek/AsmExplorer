@@ -294,7 +294,9 @@ namespace VSAsm
 
                 if (token.Contains("[")) {
                     // It must be indirect addressing argument.
-                    args[i] = ParseInstructionIndirectArg(token);
+                    args[i] = new AsmInstructionIndirectAddressArg() {
+                        Unparsed = token
+                    };
                 } else {
                     // Either register or constant.
 
@@ -311,11 +313,6 @@ namespace VSAsm
             }
 
             return args;
-        }
-
-        AsmInstructionIndirectAddressArg ParseInstructionIndirectArg(string raw)
-        {
-            return new AsmInstructionIndirectAddressArg();
         }
 
         bool IsEndOfBlock(string line)

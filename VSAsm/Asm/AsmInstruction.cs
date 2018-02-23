@@ -7,5 +7,9 @@
         public string Name { get; set; }
         public IAsmInstructionArg[] Args { get; set; }
         public string Comment { get; set; }
+
+        public bool IsLabel {
+            get { return (Name[Name.Length - 1] == ':'); }
+        }
     }
 }

@@ -66,13 +66,16 @@
     <Compile Include="CLAsmParser.cs" />
     <Compile Include="CLCommandLineBuilder.cs" />
     <Compile Include="LineRange.cs" />
+    <Compile Include="Options.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="TextViewCreationListener.cs" />
     <Compile Include="ToolWindow.cs" />
     <Compile Include="ToolWindowControl.xaml.cs">
       <DependentUpon>ToolWindowControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Package.cs" />
-    <Compile Include="Options.cs">
+    <Compile Include="ViewOptions.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="PackageGuids.cs" />

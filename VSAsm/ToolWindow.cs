@@ -420,8 +420,6 @@ namespace VSAsm
         void OnTextViewLostFocus(object sender, EventArgs args)
         {
             ActiveTextView = null;
-            CurrentLine = 0;
-            m_view.OnDocumentChanged();
         }
 
         void OnTextViewCaretPositionChanged(object sender, CaretPositionChangedEventArgs args)

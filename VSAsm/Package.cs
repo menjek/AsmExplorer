@@ -9,6 +9,7 @@ namespace VSAsm
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideToolWindow(typeof(ToolWindow))]
     [ProvideOptionPage(typeof(Options), "VSAsm", "General", 101, 106, true)]
+    [ProvideOptionPage(typeof(ViewOptions), "VSAsm", "View", 101, 106, true)]
     [Guid(PackageGuids.Package)]
     public sealed class Package : Microsoft.VisualStudio.Shell.Package
     {

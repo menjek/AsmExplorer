@@ -49,9 +49,7 @@ namespace VSAsm
 
         public void OnDocumentChanged()
         {
-            if (m_window.ActiveTextView == null) {
-                SetupNoDocument();
-            } else if (m_window.ActiveFile == null) {
+            if (m_window.ActiveFile == null) {
                 SetupNoSource();
             } else if (m_window.ActiveAsm == null) {
                 SetupNoAsm();
@@ -77,12 +75,6 @@ namespace VSAsm
         #endregion // Interface.
 
         #region States
-
-        void SetupNoDocument()
-        {
-            m_textBox.Document.Blocks.Clear();
-            m_textBox.AppendText("No document.");
-        }
 
         void SetupNoSource()
         {
@@ -119,7 +111,7 @@ namespace VSAsm
                         continue;
                     }
 
-                    string line = "  ";
+                    string line = "    ";
                     line += instruction.Name;
 
                     if (instruction.Args != null && instruction.Args.Length != 0) {
@@ -133,7 +125,7 @@ namespace VSAsm
                             } else if (arg is AsmInstructionRegisterArg) {
                                 args[i] = ((AsmInstructionRegisterArg)arg).Name.ToString();
                             } else {
-                                args[i] = "indirect";
+                                args[i] = ((AsmInstructionIndirectAddressArg)arg).Unparsed;
                             }
                         }
 
