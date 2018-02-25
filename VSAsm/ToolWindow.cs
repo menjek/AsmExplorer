@@ -349,9 +349,7 @@ namespace VSAsm
                 }
             }
 
-            if (ActiveFile == file) {
-                m_view.OnDocumentChanged();
-            }
+            m_view.OnDocumentChanged();
         }
 
         void UpdateFile(AsmFile current, AsmFile newFile)
