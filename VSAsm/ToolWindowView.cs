@@ -23,7 +23,7 @@ namespace VSAsm
         #region Data.
 
         ToolWindow m_window = null;
-        RichTextBox m_textBox = null;
+        TextBlock m_text = null;
         double m_zoomLevel = 1.0;
         double m_fontSize = 0.0;
 
@@ -31,11 +31,10 @@ namespace VSAsm
 
         #region Create.
 
-        public ToolWindowView(ToolWindow window, RichTextBox textBox)
+        public ToolWindowView(ToolWindow window, TextBlock text)
         {
             m_window = window;
-            m_textBox = textBox;
-            m_textBox.Document.MinPageWidth = TextBoxMinWidth;
+            m_text = text;
 
             RegisterForTextManagerEvents();
             UpdateFont();
@@ -78,19 +77,17 @@ namespace VSAsm
 
         void SetupNoSource()
         {
-            m_textBox.Document.Blocks.Clear();
-            m_textBox.AppendText("No source.");
+            m_text.Text = "No source.";
         }
 
         void SetupNoAsm()
         {
-            m_textBox.Document.Blocks.Clear();
-            m_textBox.AppendText("No asm.");
+            m_text.Text = "No asm.";
         }
 
         void SetupAsm()
         {
-            m_textBox.Document.Blocks.Clear();
+            m_text.Text = "";
 
             AsmFunction function = SearchFunction(m_window.ActiveAsm.Functions, m_window.CurrentLine);
             if (function != null) {
@@ -100,12 +97,12 @@ namespace VSAsm
 
         void SetupFunction(AsmFunction function)
         {
-            m_textBox.AppendText(function.Name + Environment.NewLine);
+            m_text.Inlines.Add(new Run(function.Name + Environment.NewLine) { Foreground = Brushes.Blue, Background = Brushes.LightGreen });
             string paragraph = string.Empty;
 
             foreach (AsmBlock block in function.Blocks) {
                 foreach (AsmInstruction instruction in block.Instructions) {
-                    if (instruction.Name.EndsWith(":")) {
+                    if (instruction.IsLabel) {
                         // We have a label.
                         paragraph += instruction.Name + Environment.NewLine;
                         continue;
@@ -137,7 +134,7 @@ namespace VSAsm
                 }
             }
 
-            m_textBox.Document.Blocks.Add(new Paragraph(new Run(paragraph)));
+            m_text.Inlines.Add(paragraph);
         }
 
         static AsmFunction SearchFunction(List<AsmFunction> functions, int line)
@@ -217,9 +214,9 @@ namespace VSAsm
         {
             FontInfo? info = GetTextEditorFontInfo();
             if (info.HasValue) {
-                m_textBox.FontFamily = new FontFamily(info.Value.bstrFaceName);
+                m_text.FontFamily = new FontFamily(info.Value.bstrFaceName);
                 m_fontSize = PointsToPixels(info.Value.wPointSize);
-                m_textBox.FontSize = m_fontSize * m_zoomLevel;
+                m_text.FontSize = m_fontSize * m_zoomLevel;
             }
         }
 
@@ -253,7 +250,7 @@ namespace VSAsm
         void UpdateZoom(object sender, ZoomLevelChangedEventArgs args)
         {
             m_zoomLevel = args.NewZoomLevel / 100.0;
-            m_textBox.FontSize = m_fontSize * m_zoomLevel;
+            m_text.FontSize = m_fontSize * m_zoomLevel;
         }
 
         #endregion // Events.
