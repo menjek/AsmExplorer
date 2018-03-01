@@ -78,12 +78,11 @@ namespace VSAsm
 
         public AsmFile ActiveAsm {
             get {
-                ITextDocument activeTextDocument = ActiveTextDocument;
-                if (activeTextDocument == null) {
+                if (ActiveFile == null) {
                     return null;
                 }
 
-                string filePath = activeTextDocument.FilePath.ToLower(); ;
+                string filePath = ActiveFile.FullPath.ToLower(); ;
                 if (m_asm.TryGetValue(filePath, out AsmFile asm)) {
                     return asm;
                 } else {

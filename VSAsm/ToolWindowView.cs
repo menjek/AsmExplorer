@@ -97,6 +97,9 @@ namespace VSAsm
 
         void SetupFunction(AsmFunction function)
         {
+            Package package = (Package)m_window.Package;
+            ViewOptions options = (ViewOptions)package.GetDialogPage(typeof(ViewOptions));
+            
             m_text.Inlines.Add(new Run(function.Name + Environment.NewLine) { Foreground = Brushes.Blue, Background = Brushes.LightGreen });
             string paragraph = string.Empty;
 

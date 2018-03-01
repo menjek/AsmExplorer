@@ -1,32 +1,111 @@
 ﻿using Microsoft.VisualStudio.Shell;
 using System.ComponentModel;
+using System.Drawing;
 
 namespace VSAsm
 {
-    class ViewOptions : DialogPage
+    sealed class ViewOptions : DialogPage
     {
-        [DisplayName("Label padding")]
+
+        #region Serialization
+
+        private Settings m_settings = null;
+
+        public override void LoadSettingsFromStorage()
+        {
+            m_settings = Settings.Load();
+        }
+
+        public override void SaveSettingsToStorage()
+        {
+            m_settings.Save();
+        }
+
+        #endregion // Serialization
+
+        #region Padding
+
+        [DisplayName("Label")]
         [Description("Number of spaces before all labels.")]
         [Category("Padding")]
         [DefaultValue(0)]
-        public int LabelPadding { get; set; }
+        public int LabelPadding {
+            get => m_settings.LabelPadding;
+            set => m_settings.LabelPadding = value;
+        }
 
-        [DisplayName("Instruction padding")]
-        [Description("Starting column od instruction name.")]
+        [DisplayName("Instruction")]
+        [Description("Starting column of an instruction name.")]
         [Category("Padding")]
         [DefaultValue(4)]
-        public int InstructionPadding { get; set; }
+        public int InstructionPadding {
+            get => m_settings.InstructionPadding;
+            set => m_settings.InstructionPadding = value;
+        }
 
-        [DisplayName("Instruction arguments padding")]
+        [DisplayName("Instruction arguments")]
         [Description("Minimal starting column for instruction arguments.")]
         [Category("Padding")]
         [DefaultValue(16)]
-        public int InstructionArgsPadding { get; set; }
+        public int InstructionArgsPadding {
+            get => m_settings.InstructionArgsPadding;
+            set => m_settings.InstructionArgsPadding = value;
+        }
 
-        [DisplayName("Instruction arguments padding")]
-        [Description("Minimal starting column for an assembly comments.")]
+        [DisplayName("Instruction comment")]
+        [Description("Minimal starting column for assembly comments.")]
         [Category("Padding")]
         [DefaultValue(64)]
-        public int CommentsPadding { get; set; }
+        public int CommentPadding {
+            get => m_settings.CommentPadding;
+            set => m_settings.CommentPadding = value;
+        }
+
+        #endregion // Padding
+
+        #region Colors
+
+        static readonly Color[] MatchingLinesLightPreset =
+        {
+            Color.Red,
+            Color.Red,
+            Color.Red,
+            Color.Red,
+            Color.Red
+        };
+
+        static readonly Color[] MatchingLinesBluePreset =
+        {
+            Color.Green,
+            Color.Green,
+            Color.Green,
+            Color.Green,
+            Color.Green
+        };
+
+        static readonly Color[] MatchingLinesDarkPreset =
+        {
+            Color.Blue,
+            Color.Blue,
+            Color.Blue,
+            Color.Blue,
+            Color.Blue
+        };
+
+        [DisplayName("Preset")]
+        [Category("Matching Lines")]
+        public Settings.MatchingLinesPresets MatchingLinesPreset {
+            get => m_settings.MatchingLinesPreset;
+            set => m_settings.MatchingLinesPreset = value;
+        }
+
+        [DisplayName("Custom Colors")]
+        [Category("Matching Lines")]
+        public Color[] MatchingLinesCustomColors {
+            get => m_settings.MatchingLinesCustomColors;
+            set => m_settings.MatchingLinesCustomColors = value;
+        }
+
+        #endregion // Colors
     }
 }
