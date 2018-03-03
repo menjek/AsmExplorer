@@ -97,7 +97,7 @@ namespace VSAsm
 
         void SetupFunction(AsmFunction function)
         {
-            Package package = (Package)m_window.Package;
+            VSAsmPackage package = (VSAsmPackage)m_window.Package;
             ViewOptions options = (ViewOptions)package.GetDialogPage(typeof(ViewOptions));
             
             m_text.Inlines.Add(new Run(function.Name + Environment.NewLine) { Foreground = Brushes.Blue, Background = Brushes.LightGreen });
@@ -198,7 +198,7 @@ namespace VSAsm
 
         void RegisterForTextManagerEvents()
         {
-            IConnectionPointContainer container = (IConnectionPointContainer)Package.GetGlobalService(typeof(SVsTextManager));
+            IConnectionPointContainer container = (IConnectionPointContainer)VSAsmPackage.GetGlobalService(typeof(SVsTextManager));
             if (container == null) {
                 return;
             }
@@ -225,7 +225,7 @@ namespace VSAsm
 
         FontInfo? GetTextEditorFontInfo()
         {
-            IVsFontAndColorStorage fontStorage = (IVsFontAndColorStorage)Package.GetGlobalService(typeof(SVsFontAndColorStorage));
+            IVsFontAndColorStorage fontStorage = (IVsFontAndColorStorage)VSAsmPackage.GetGlobalService(typeof(SVsFontAndColorStorage));
             if (fontStorage == null) {
                 return null;
             }

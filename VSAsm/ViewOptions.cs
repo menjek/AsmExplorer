@@ -6,7 +6,6 @@ namespace VSAsm
 {
     sealed class ViewOptions : DialogPage
     {
-
         #region Serialization
 
         private Settings m_settings = null;

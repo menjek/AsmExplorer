@@ -75,7 +75,7 @@
     <Compile Include="ToolWindowControl.xaml.cs">
       <DependentUpon>ToolWindowControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Package.cs" />
+    <Compile Include="VSAsmPackage.cs" />
     <Compile Include="ViewOptions.cs">
       <SubType>Component</SubType>
     </Compile>

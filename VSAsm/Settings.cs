@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+using System;
 using System.Drawing;
 using System.IO;
 using System.Runtime.Serialization;
@@ -63,7 +65,10 @@ namespace VSAsm
             try {
                 Directory.CreateDirectory(GetDirectory());
                 SaveToFile(GetPath());
-            } catch { }
+            } catch (Exception e) {
+                VSAsmPackage.ShowError("VSAsm save settings",
+                    "Failed to save the extension settings to storage: " + e.Message);
+            }
         }
 
         void SaveToFile(string path)
