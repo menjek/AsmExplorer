@@ -16,6 +16,7 @@ namespace VSAsm
         #region Constants.
 
         const int TextBoxMinWidth = 1024;
+        private const string V = "No asm.";
         static readonly Guid TextEditorFontGuid = new Guid(FontsAndColorsCategory.TextEditor);
 
         #endregion // Constants.
@@ -26,6 +27,8 @@ namespace VSAsm
         TextBlock m_text = null;
         double m_zoomLevel = 1.0;
         double m_fontSize = 0.0;
+        ViewOptions m_viewOptions = null;
+        AsmFunctionDecorator m_decoratedFunction = null;
 
         #endregion // Data.
 
@@ -82,7 +85,7 @@ namespace VSAsm
 
         void SetupNoAsm()
         {
-            m_text.Text = "No asm.";
+            m_text.Text = V;
         }
 
         void SetupAsm()
@@ -97,47 +100,160 @@ namespace VSAsm
 
         void SetupFunction(AsmFunction function)
         {
-            VSAsmPackage package = (VSAsmPackage)m_window.Package;
-            ViewOptions options = (ViewOptions)package.GetDialogPage(typeof(ViewOptions));
-            
-            m_text.Inlines.Add(new Run(function.Name + Environment.NewLine) { Foreground = Brushes.Blue, Background = Brushes.LightGreen });
-            string paragraph = string.Empty;
+            if (m_viewOptions == null) {
+                m_viewOptions = (ViewOptions)VSAsmPackage.Instance.GetDialogPage(typeof(ViewOptions));
+            }
 
+            AddFunctionHeader(function);
+
+            int index = 0;
             foreach (AsmBlock block in function.Blocks) {
-                foreach (AsmInstruction instruction in block.Instructions) {
-                    if (instruction.IsLabel) {
-                        // We have a label.
-                        paragraph += instruction.Name + Environment.NewLine;
-                        continue;
-                    }
+                AddBlock(index, block);
+                ++index;
+            }
+        }
 
-                    string line = "    ";
-                    line += instruction.Name;
+        static void AddPadding(InlineCollection inlines, int padding)
+        {
+            if (padding != 0) {
+                inlines.Add(new Run(new string(' ', padding)));
+            }
+        }
 
-                    if (instruction.Args != null && instruction.Args.Length != 0) {
-                        line = line.PadRight(16);
+        void AddFunctionHeader(AsmFunction function)
+        {
+            m_decoratedFunction = new AsmFunctionDecorator() {
+                Function = function,
+                Run = new Run(function.Name) { Foreground = Brushes.Blue, Background = Brushes.LightGreen },
+                Blocks = new List<AsmBlockDecorator>()
+            };
 
-                        string[] args = new string[instruction.Args.Length];
-                        for (int i = 0; i < args.Length; ++i) {
-                            IAsmInstructionArg arg = instruction.Args[i];
-                            if (arg is AsmInstructionConstantArg) {
-                                args[i] = ((AsmInstructionConstantArg)arg).Value.ToString();
-                            } else if (arg is AsmInstructionRegisterArg) {
-                                args[i] = ((AsmInstructionRegisterArg)arg).Name.ToString();
-                            } else {
-                                args[i] = ((AsmInstructionIndirectAddressArg)arg).Unparsed;
-                            }
-                        }
+            m_text.Inlines.Add(m_decoratedFunction.Run);
+            m_text.Inlines.Add(new Run(Environment.NewLine));
+        }
 
-                        line += string.Join(", ", args);
-                    }
+        void AddBlock(int index, AsmBlock block)
+        {
+            Span blockSpan = new Span();
 
-                    line += Environment.NewLine;
-                    paragraph += line;
+            AsmBlockDecorator decoratedBlock = new AsmBlockDecorator() {
+                Block = block,
+                Span = blockSpan,
+                Instructions = new List<AsmInstructionDecorator>()
+            };
+
+            m_decoratedFunction.Blocks.Add(decoratedBlock);
+
+            foreach (AsmInstruction instruction in block.Instructions) {
+                AsmInstructionDecorator decoratedInstruction = null;
+
+                if (instruction.IsLabel) {
+                    AddPadding(blockSpan.Inlines, m_viewOptions.LabelPadding);
+                    decoratedInstruction = CreateLabel(instruction);
+                } else {
+                    AddPadding(blockSpan.Inlines, m_viewOptions.InstructionPadding);
+                    decoratedInstruction = CreateInstruction(instruction);
+                }
+
+                decoratedBlock.Instructions.Add(decoratedInstruction);
+                blockSpan.Inlines.Add(decoratedInstruction.Span);
+                blockSpan.Inlines.Add(new Run(Environment.NewLine));
+            }
+
+            m_text.Inlines.Add(blockSpan);
+        }
+
+        AsmInstructionDecorator CreateLabel(AsmInstruction label)
+        {
+            AsmInstructionDecorator decorator = new AsmInstructionDecorator() {
+                Instruction = label,
+                Span = new Span(),
+                Name = new Run(label.Name)
+            };
+
+            decorator.Span.Inlines.Add(decorator.Name);
+            return decorator;
+        }
+
+        AsmInstructionDecorator CreateInstruction(AsmInstruction instruction)
+        {
+            AsmInstructionDecorator decorator = new AsmInstructionDecorator() {
+                Instruction = instruction,
+                Span = new Span(),
+                Name = CreateInstructionName(instruction),
+                Args = CreateInstructionArgs(instruction),
+                Comment = CreateInstructionComment(instruction)
+            };
+
+            decorator.Span.Inlines.Add(decorator.Name);
+
+            if (decorator.Args != null) {
+                foreach (AsmInstructionArgDecorator arg in decorator.Args) {
+                    decorator.Span.Inlines.Add(arg.Run);
                 }
             }
 
-            m_text.Inlines.Add(paragraph);
+            if (decorator.Comment != null) {
+                decorator.Span.Inlines.Add(decorator.Comment);
+            }
+
+            return decorator;
+        }
+
+        Run CreateInstructionName(AsmInstruction instruction)
+        {
+            return new Run(instruction.Name);
+        }
+
+        Run CreateInstructionComment(AsmInstruction instruction)
+        {
+            Run comment = null;
+            if (instruction.Comment != null) {
+                comment = new Run(instruction.Comment);
+            }
+            return comment;
+        }
+
+        List<AsmInstructionArgDecorator> CreateInstructionArgs(AsmInstruction instruction)
+        {
+            List<AsmInstructionArgDecorator> args = null;
+
+            if (instruction.Args != null) {
+                args = new List<AsmInstructionArgDecorator>();
+
+                foreach (IAsmInstructionArg arg in instruction.Args) {
+                    AsmInstructionArgDecorator decoratedArg = new AsmInstructionArgDecorator() {
+                        Arg = arg,
+                        Run = CreateInstructionArg(arg)
+                    };
+                    args.Add(decoratedArg);
+                }
+            }
+
+            return args;
+        }
+
+        Run CreateInstructionArg(IAsmInstructionArg arg)
+        {
+            Run run = null;
+            switch (arg.Type) {
+                case InstructionArgType.Constant: {
+                    AsmInstructionConstantArg constant = (AsmInstructionConstantArg)arg;
+                    run = new Run(constant.Value.ToString());
+                    break;
+                }
+                case InstructionArgType.IndirectAddress: {
+                    AsmInstructionIndirectAddressArg indirect = (AsmInstructionIndirectAddressArg)arg;
+                    run = new Run(indirect.Unparsed);
+                    break;
+                }
+                case InstructionArgType.Register: {
+                    AsmInstructionRegisterArg register = (AsmInstructionRegisterArg)arg;
+                    run = new Run(register.Name);
+                    break;
+                }
+            }
+            return run;
         }
 
         static AsmFunction SearchFunction(List<AsmFunction> functions, int line)

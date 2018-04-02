@@ -66,11 +66,11 @@ namespace VSAsm
 
         static readonly Color[] MatchingLinesLightPreset =
         {
-            Color.Red,
-            Color.Red,
-            Color.Red,
-            Color.Red,
-            Color.Red
+            Color.FromArgb(255, 128, 128),
+            Color.FromArgb(128, 255, 128),
+            Color.FromArgb(128, 128, 255),
+            Color.FromArgb(255, 255, 128),
+            Color.FromArgb(128, 255, 255)
         };
 
         static readonly Color[] MatchingLinesBluePreset =

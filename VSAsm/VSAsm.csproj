@@ -55,11 +55,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Asm\AsmBlock.cs" />
+    <Compile Include="Asm\AsmBlockDecorator.cs" />
     <Compile Include="Asm\AsmFile.cs" />
     <Compile Include="Asm\AsmFunction.cs" />
+    <Compile Include="Asm\AsmFunctionDecorator.cs" />
     <Compile Include="Asm\AsmInstruction.cs" />
     <Compile Include="Asm\AsmInstructionArg.cs" />
+    <Compile Include="Asm\AsmInstructionArgDecorator.cs" />
     <Compile Include="Asm\AsmInstructionConstantArg.cs" />
+    <Compile Include="Asm\AsmInstructionDecorator.cs" />
     <Compile Include="Asm\AsmInstructionIndirectAddressArg.cs" />
     <Compile Include="Asm\AsmInstructionRegisterArg.cs" />
     <Compile Include="Asm\AsmUnit.cs" />

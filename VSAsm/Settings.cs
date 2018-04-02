@@ -1,6 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
-using System;
+﻿using System;
 using System.Drawing;
 using System.IO;
 using System.Runtime.Serialization;
