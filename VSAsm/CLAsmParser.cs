@@ -270,7 +270,17 @@ namespace VSAsm
                     // The second argument is a comment.
                     instruction.Comment = tokens[1].Substring(2);
                 } else {
-                    instruction.Args = ParseInstructionArgs(tokens[1]);
+                    // There still can be a comment on this line.
+                    // Comments are sometimes not separated by tabs, but
+                    // simple space.
+
+                    if (tokens[1].IndexOf(InstructionCommentStart) != -1) {
+                        string[] argTokens = tokens[1].Split(InstructionCommentStart);
+                        instruction.Args = ParseInstructionArgs(argTokens[0]);
+                        instruction.Comment = argTokens[1].TrimStart();
+                    } else {
+                        instruction.Args = ParseInstructionArgs(tokens[1]);
+                    }
                 }
 
                 if (tokens.Length > 2) {
@@ -298,16 +308,26 @@ namespace VSAsm
                         Unparsed = token
                     };
                 } else {
-                    // Either register or constant.
+                    // Either register, constant or label.
 
                     if (long.TryParse(token, out long value)) {
                         args[i] = new AsmInstructionConstantArg() {
                             Value = value
                         };
                     } else {
-                        args[i] = new AsmInstructionRegisterArg() {
-                            Name = token
-                        };
+                        // Either register or label.
+
+                        if (token.IndexOf(' ') != -1) {
+                            string[] split = token.Split(' ');
+                            args[i] = new AsmInstructionLabelArg() {
+                                Prefix = split[0],
+                                Name = split[1]
+                            };
+                        } else {
+                            args[i] = new AsmInstructionRegisterArg() {
+                                Name = token
+                            };
+                        }
                     }
                 }
             }

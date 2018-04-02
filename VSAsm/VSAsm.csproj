@@ -65,6 +65,7 @@
     <Compile Include="Asm\AsmInstructionConstantArg.cs" />
     <Compile Include="Asm\AsmInstructionDecorator.cs" />
     <Compile Include="Asm\AsmInstructionIndirectAddressArg.cs" />
+    <Compile Include="Asm\AsmInstructionLabelArg.cs" />
     <Compile Include="Asm\AsmInstructionRegisterArg.cs" />
     <Compile Include="Asm\AsmUnit.cs" />
     <Compile Include="CLAsmParser.cs" />
