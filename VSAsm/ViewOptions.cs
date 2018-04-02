@@ -54,7 +54,7 @@ namespace VSAsm
         [DisplayName("Instruction comment")]
         [Description("Minimal starting column for assembly comments.")]
         [Category("Padding")]
-        [DefaultValue(64)]
+        [DefaultValue(50)]
         public int CommentPadding {
             get => m_settings.CommentPadding;
             set => m_settings.CommentPadding = value;

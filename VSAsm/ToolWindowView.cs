@@ -21,6 +21,17 @@ namespace VSAsm
 
         #endregion // Constants.
 
+        #region Colors
+
+        static readonly Brush FUNCTION_FOREGROUND = Brushes.DarkRed;
+        static readonly Brush LABEL_FOREGROUND = Brushes.DarkBlue;
+        static readonly Brush INSTRUCTION_NAME_FOREGROUND = Brushes.Black;
+        static readonly Brush CONSTANT_FOREGROUND = Brushes.Blue;
+        static readonly Brush REGISTER_FOREGROUND = Brushes.Black;
+        static readonly Brush COMMENT_FOREGROUND = Brushes.Green;
+
+        #endregion // Colors
+
         #region Data.
 
         ToolWindow m_window = null;
@@ -124,7 +135,7 @@ namespace VSAsm
         {
             m_decoratedFunction = new AsmFunctionDecorator() {
                 Function = function,
-                Run = new Run(function.Name) { Foreground = Brushes.Blue, Background = Brushes.LightGreen },
+                Run = new Run(function.Name) { Foreground = FUNCTION_FOREGROUND },
                 Blocks = new List<AsmBlockDecorator>()
             };
 
@@ -168,7 +179,7 @@ namespace VSAsm
             AsmInstructionDecorator decorator = new AsmInstructionDecorator() {
                 Instruction = label,
                 Span = new Span(),
-                Name = new Run(label.Name)
+                Name = new Run(label.Name) { Foreground = LABEL_FOREGROUND }
             };
 
             decorator.Span.Inlines.Add(decorator.Name);
@@ -185,15 +196,36 @@ namespace VSAsm
                 Comment = CreateInstructionComment(instruction)
             };
 
+            int column = m_viewOptions.InstructionPadding;
+
             decorator.Span.Inlines.Add(decorator.Name);
+            column += instruction.Name.Length;
+
+            if (column < m_viewOptions.InstructionArgsPadding) {
+                string padding = new string(' ', m_viewOptions.InstructionArgsPadding - column);
+                decorator.Span.Inlines.Add(new Run(padding));
+                column = m_viewOptions.InstructionArgsPadding;
+            }
 
             if (decorator.Args != null) {
-                foreach (AsmInstructionArgDecorator arg in decorator.Args) {
+                for (int i = 0; i < decorator.Args.Count; ++i) {
+                    AsmInstructionArgDecorator arg = decorator.Args[i];
                     decorator.Span.Inlines.Add(arg.Run);
+                    column += arg.Run.Text.Length;
+
+                    if ((i + 1) != decorator.Args.Count) {
+                        decorator.Span.Inlines.Add(new Run(", "));
+                        column += 2;
+                    }
                 }
             }
 
             if (decorator.Comment != null) {
+                if (column < m_viewOptions.CommentPadding) {
+                    string padding = new string(' ', m_viewOptions.CommentPadding - column);
+                    decorator.Span.Inlines.Add(new Run(padding));
+                }
+
                 decorator.Span.Inlines.Add(decorator.Comment);
             }
 
@@ -202,14 +234,14 @@ namespace VSAsm
 
         Run CreateInstructionName(AsmInstruction instruction)
         {
-            return new Run(instruction.Name);
+            return new Run(instruction.Name) { Foreground = INSTRUCTION_NAME_FOREGROUND };
         }
 
         Run CreateInstructionComment(AsmInstruction instruction)
         {
             Run comment = null;
             if (instruction.Comment != null) {
-                comment = new Run(instruction.Comment);
+                comment = new Run("; " + instruction.Comment) { Foreground = COMMENT_FOREGROUND };
             }
             return comment;
         }
@@ -239,7 +271,7 @@ namespace VSAsm
             switch (arg.Type) {
                 case InstructionArgType.Constant: {
                     AsmInstructionConstantArg constant = (AsmInstructionConstantArg)arg;
-                    run = new Run(constant.Value.ToString());
+                    run = new Run(constant.Value.ToString()) { Foreground = CONSTANT_FOREGROUND };
                     break;
                 }
                 case InstructionArgType.IndirectAddress: {
@@ -249,7 +281,7 @@ namespace VSAsm
                 }
                 case InstructionArgType.Register: {
                     AsmInstructionRegisterArg register = (AsmInstructionRegisterArg)arg;
-                    run = new Run(register.Name);
+                    run = new Run(register.Name) { Foreground = REGISTER_FOREGROUND };
                     break;
                 }
             }
