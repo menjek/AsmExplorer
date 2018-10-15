@@ -334,7 +334,7 @@ namespace VSAsm
             string path = Path.Combine(solutionDir, dir, filename);
             string text = File.ReadAllText(path);
 
-            CLAsmParser parser = new CLAsmParser();
+            CLx64AsmParser parser = new CLx64AsmParser();
             AsmUnit asmUnit = parser.Parse(text);
 
             foreach (KeyValuePair<string, AsmFile> filePair in asmUnit.Files) {

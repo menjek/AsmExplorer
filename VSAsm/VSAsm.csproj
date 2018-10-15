@@ -68,7 +68,7 @@
     <Compile Include="Asm\AsmInstructionLabelArg.cs" />
     <Compile Include="Asm\AsmInstructionRegisterArg.cs" />
     <Compile Include="Asm\AsmUnit.cs" />
-    <Compile Include="CLAsmParser.cs" />
+    <Compile Include="CLx64AsmParser.cs" />
     <Compile Include="CLCommandLineBuilder.cs" />
     <Compile Include="LineRange.cs" />
     <Compile Include="Options.cs">
@@ -112,6 +112,9 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Antlr4.Runtime.Standard, Version=4.7.1.0, Culture=neutral, PublicKeyToken=e78b2c5abd1fcb3f, processorArchitecture=MSIL">
+      <HintPath>packages\Antlr4.Runtime.Standard.4.7.1.1\lib\net35\Antlr4.Runtime.Standard.dll</HintPath>
+    </Reference>
     <Reference Include="EnvDTE, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>

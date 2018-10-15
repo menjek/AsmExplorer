@@ -13,11 +13,11 @@ namespace VSAsm
 {
     class ToolWindowView
     {
-        #region Constants.
+        #region Constants
 
         static readonly Guid TextEditorFontGuid = new Guid(FontsAndColorsCategory.TextEditor);
 
-        #endregion // Constants.
+        #endregion // Constants
 
         #region Colors
 
@@ -26,11 +26,13 @@ namespace VSAsm
         static readonly Brush InstructionNameForeground = Brushes.Black;
         static readonly Brush ConstantForeground = Brushes.Blue;
         static readonly Brush RegisterForeground = Brushes.Red;
+        static readonly Brush LabelArgForeground = Brushes.Green;
+        static readonly Brush IndirectForeground = Brushes.Gray;
         static readonly Brush CommentForeground = Brushes.Green;
 
         #endregion // Colors
 
-        #region Data.
+        #region Data
 
         ToolWindow m_window = null;
         TextBlock m_text = null;
@@ -39,9 +41,9 @@ namespace VSAsm
         ViewOptions m_viewOptions = null;
         AsmFunctionDecorator m_decoratedFunction = null;
 
-        #endregion // Data.
+        #endregion // Data
 
-        #region Create.
+        #region Create
 
         public ToolWindowView(ToolWindow window, TextBlock text)
         {
@@ -54,9 +56,9 @@ namespace VSAsm
             TextViewCreationListener.Events += (IWpfTextView textView) => textView.ZoomLevelChanged += UpdateZoom;
         }
 
-        #endregion // Create.
+        #endregion // Create
 
-        #region Interface.
+        #region Interface
 
         public void OnDocumentChanged()
         {
@@ -83,7 +85,7 @@ namespace VSAsm
             // from COFF and PDBs is implemented.
         }
 
-        #endregion // Interface.
+        #endregion // Interface
 
         #region States
 
@@ -280,7 +282,7 @@ namespace VSAsm
                 }
                 case InstructionArgType.IndirectAddress: {
                     AsmInstructionIndirectAddressArg indirect = (AsmInstructionIndirectAddressArg)arg;
-                    run = new Run(indirect.Unparsed);
+                    run = new Run(indirect.Unparsed) { Foreground = IndirectForeground };
                     break;
                 }
                 case InstructionArgType.Register: {
@@ -290,7 +292,7 @@ namespace VSAsm
                 }
                 case InstructionArgType.Label: {
                     AsmInstructionLabelArg label = (AsmInstructionLabelArg)arg;
-                    run = new Run(label.Prefix + " " + label.Name);
+                    run = new Run(label.Prefix + " " + label.Name) { Foreground = LabelArgForeground };
                     break;
                 }
             }
@@ -332,9 +334,9 @@ namespace VSAsm
             return null;
         }
 
-        #endregion
+        #endregion // States
 
-        #region Events.
+        #region Events
 
         class TextManagerEventHandler : IVsTextManagerEvents
         {
@@ -413,6 +415,6 @@ namespace VSAsm
             m_text.FontSize = m_fontSize * m_zoomLevel;
         }
 
-        #endregion // Events.
+        #endregion // Events
     }
 }

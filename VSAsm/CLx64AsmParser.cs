@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace VSAsm
 {
-    class CLAsmParser
+    class CLx64AsmParser
     {
         #region Constants
 
@@ -17,6 +17,28 @@ namespace VSAsm
         static readonly string[] NewLines = { "\n", "\r\n" };
         static readonly string[] InstructionSeparator = { "\t" };
         static readonly string[] InstructionArgsSeparator = { ", " };
+
+        static readonly string[] RegistersNames = {
+            // 64-bit, 32-bit, 16-bit, 8-bit High, 8-bit Low
+            "rax", "eax", "ax", "ah", "al",
+            "rbx", "ebx", "bx", "bh", "bl",
+            "rcx", "ecx", "cx", "ch", "cl",
+            "rdx", "edx", "dx", "dh", "dl",
+            "rsi", "esi", "si", "sih", "sil",
+            "rdi", "edi", "di", "dih", "dil",
+            "rbp", "ebp", "bp", "bph", "bpl",
+            "rsp", "esp", "sp", "sph", "spl",
+            "rip", "eip", "ip", "iph", "ipl",
+            "r8", "r8d", "r8w", "r8b",
+            "r9", "r9d", "r9w", "r9b",
+            "r10", "r10d", "r10w", "r10b",
+            "r11", "r11d", "r11w", "r11b",
+            "r12", "r12d", "r12w", "r12b",
+            "r13", "r13d", "r13w", "r13b",
+            "r14", "r14d", "r14w", "r14b",
+            "r15", "r15d", "r15w", "r15b",
+            "rflags", "flags"
+        };
 
         #endregion // Constants
 
